@@ -51,20 +51,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          persist-credentials: true
-          fetch-depth: 0
+          python-version: "3.12"
+      # GITHUB_TOKEN lifts the API rate limit from 60/h to 5000/h, so a failed run can
+      # retry on the next schedule instead of being stuck until midnight UTC.
       - name: Generate terminal card
-        uses: yogeshwaran01/github-stats-terminal-style@master
-        with:
-          username: ${{ github.repository_owner }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          theme: gruvbox
-          headerStyle: mac
-          hostname: github.com
-          typingSpeed: 60
-          commands: whoami,top-repos,exit
-          outputPath: assets/terminal-stats.svg
+        run: |
+          python scripts/stats_card.py \
+            --user "${{ github.repository_owner }}" \
+            --out assets/terminal-stats.svg \
+            --token "${{ secrets.GITHUB_TOKEN }}"
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"

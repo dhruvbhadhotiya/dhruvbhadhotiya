@@ -9,19 +9,13 @@ import argparse
 import io
 import sys
 import urllib.request
-import xml.sax.saxutils as saxutils
 from pathlib import Path
 
 from PIL import Image
 
+from theme import FONT, esc, root_block
+
 RAMP = "@%#*+=-:. "
-BG = "#0d0b07"
-FG = "#ffb000"
-ACCENT = "#ffcc66"
-BG_LIGHT = "#fdf6e3"
-FG_LIGHT = "#8a4b00"
-ACCENT_LIGHT = "#b35c00"
-FONT = "'Fira Code','Courier New',Courier,monospace"
 FONT_SIZE = 13.0
 # Courier New advance is 0.6em. Deriving the cell from the font size keeps the viewBox
 # tight against the art; hardcoding it leaves a dead band on the right.
@@ -61,7 +55,7 @@ def render_svg(rows: list[str]) -> str:
     height = round(pad * 2 + len(rows) * cell_h, 1)
 
     tspans = "".join(
-        f'<tspan x="{pad}" y="{round(pad + (i + 1) * cell_h, 1)}">{saxutils.escape(r)}</tspan>'
+        f'<tspan x="{pad}" y="{round(pad + (i + 1) * cell_h, 1)}">{esc(r)}</tspan>'
         for i, r in enumerate(rows)
     )
 
@@ -69,15 +63,11 @@ def render_svg(rows: list[str]) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
         f'width="100%" preserveAspectRatio="xMidYMid meet" role="img" '
         f'aria-label="GitHub avatar rendered as ASCII art">'
-        f"<style>"
-        f":root{{--bg:{BG};--fg:{FG};--accent:{ACCENT}}}"
-        f".bg{{fill:var(--bg)}}.fg{{fill:var(--fg)}}"
-        f"@media (prefers-color-scheme: light)"
-        f"{{:root{{--bg:{BG_LIGHT};--fg:{FG_LIGHT};--accent:{ACCENT_LIGHT}}}}}"
-        f"</style>"
+        f"<style>{root_block()}"
+        f".bg{{fill:var(--bg)}}.fg{{fill:var(--fg)}}</style>"
         f'<rect class="bg" x="0" y="0" width="{width}" height="{height}"/>'
-        f'<text font-family="{FONT}" font-size="13" class="fg" xml:space="preserve">'
-        f"{tspans}</text></svg>"
+        f'<text font-family="{FONT}" font-size="{FONT_SIZE}" class="fg" '
+        f'xml:space="preserve">{tspans}</text></svg>'
     )
 
 
