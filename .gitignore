@@ -1,0 +1,6 @@
+# Python bytecode and test-runner caches. The scripts in scripts/ are executed by
+# GitHub Actions, which regenerates these on every runner -- they are build artifacts,
+# never something to track.
+__pycache__/
+*.py[cod]
+.pytest_cache/

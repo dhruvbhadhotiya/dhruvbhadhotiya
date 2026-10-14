@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Contribution chart placeholder, awaiting first workflow run">
+<style>
+:root{--bg:#fdf6e3;--fg:#a08256;--accent:#b35c00}
+@media (prefers-color-scheme: dark){:root{--bg:#0d0b07;--fg:#8a6a2a;--accent:#ffcc66}}
+</style>
+<rect x="0" y="0" width="760" height="200" style="fill:var(--bg)"/>
+<rect x="0.5" y="0.5" width="759" height="199" fill="none" style="stroke:var(--fg);stroke-opacity:.35"/>
+<text x="380" y="96" text-anchor="middle" style="fill:var(--accent)" font-family="'Fira Code','Courier New',Courier,monospace" font-size="15">$ ./contrib --signal-board</text>
+<text x="380" y="124" text-anchor="middle" style="fill:var(--fg)" font-family="'Fira Code','Courier New',Courier,monospace" font-size="13">awaiting first run of profile-assets</text>
+</svg>

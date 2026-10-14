@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 590 460" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Terminal showing whoami, skills and recent commits">
+<style>
+:root{--bg:#0d0b07;--fg:#ffb000;--accent:#ffcc66;--dim:#a07f35;--chrome:#1a150c}
+.bg{fill:var(--bg)}.chrome{fill:var(--chrome)}.fg{fill:var(--fg)}.hi{fill:var(--accent)}.dim{fill:var(--dim)}
+.term{fill:var(--fg)}
+@keyframes type{from{width:0}to{width:var(--w)}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.reveal{animation:type .5s steps(24,end) both}
+#cur{animation:blink 1.1s step-end infinite}
+@media (prefers-color-scheme: light){:root{--bg:#fdf6e3;--fg:#8a4b00;--accent:#b35c00;--dim:#8a6a42;--chrome:#efe3c8}}
+@media (prefers-reduced-motion: reduce){.reveal{animation:none;width:var(--w)}#cur{animation:none}}
+</style>
+<defs>
+<clipPath id="c0"><rect class="reveal" style="--w:300px;animation-delay:.3s" x="26" y="86" width="300" height="18"/></clipPath>
+<clipPath id="c1"><rect class="reveal" style="--w:470px;animation-delay:1.1s" x="26" y="120" width="470" height="18"/></clipPath>
+<clipPath id="c2"><rect class="reveal" style="--w:380px;animation-delay:1.9s" x="26" y="154" width="380" height="18"/></clipPath>
+<clipPath id="c3"><rect class="reveal" style="--w:320px;animation-delay:2.7s" x="26" y="188" width="320" height="18"/></clipPath>
+<clipPath id="c4"><rect class="reveal" style="--w:560px;animation-delay:3.5s" x="26" y="222" width="560" height="18"/></clipPath>
+<clipPath id="c5"><rect class="reveal" style="--w:540px;animation-delay:4.3s" x="26" y="256" width="540" height="18"/></clipPath>
+<clipPath id="c6"><rect class="reveal" style="--w:640px;animation-delay:5.1s" x="26" y="290" width="640" height="18"/></clipPath>
+<clipPath id="c7"><rect class="reveal" style="--w:600px;animation-delay:5.9s" x="26" y="324" width="600" height="18"/></clipPath>
+<clipPath id="c8"><rect class="reveal" style="--w:470px;animation-delay:6.7s" x="26" y="358" width="470" height="18"/></clipPath>
+</defs>
+<rect class="bg" x="0" y="0" width="590" height="460" rx="10"/>
+<rect class="chrome" x="0" y="0" width="590" height="42" rx="10"/>
+<rect class="chrome" x="0" y="30" width="590" height="12"/>
+<circle cx="24" cy="21" r="6" class="fg" opacity=".85"/>
+<circle cx="44" cy="21" r="6" class="fg" opacity=".6"/>
+<circle cx="64" cy="21" r="6" class="fg" opacity=".4"/>
+<text x="295" y="26" text-anchor="middle" font-family="'Fira Code','Courier New',Courier,monospace" font-size="13" class="dim">dhruvbhadhotiya — zsh</text>
+<g class="term" font-family="'Fira Code','Courier New',Courier,monospace" font-size="14">
+<g clip-path="url(#c0)"><text x="26" y="100">$ whoami</text><text x="120" y="100" class="dim">dhruv bhadhotiya</text></g>
+<g clip-path="url(#c1)"><text x="26" y="134">$ cat role.txt</text><text x="156" y="134" class="dim">B.Tech · full-stack + deep learning</text></g>
+<g clip-path="url(#c2)"><text x="26" y="168">$ cat focus.txt</text><text x="166" y="168" class="dim">deep learning</text></g>
+<g clip-path="url(#c3)"><text x="26" y="202">$ uptime</text><text x="110" y="202" class="dim">building since 2024-11-03</text></g>
+<g clip-path="url(#c4)"><text x="26" y="236">$ cat stack.txt</text></g>
+<g clip-path="url(#c5)"><text x="26" y="270" class="dim">js · ts · python · java · react · flask · pytorch · jupyter</text></g>
+<g clip-path="url(#c6)"><text x="26" y="304">$ git log --oneline -2</text><text x="216" y="304" class="dim">3c80821 feat: add Broker sidebar layout…</text></g>
+<g clip-path="url(#c7)"><text x="26" y="338" class="dim">085b2f5 merge: market-wide hybrid report…</text></g>
+<g clip-path="url(#c8)"><text x="26" y="372">$ ./contact.sh</text><text x="156" y="372" class="dim">@DhruvBhadhotiya · India</text></g>
+</g>
+<text x="26" y="404" font-family="'Fira Code','Courier New',Courier,monospace" font-size="14" class="hi">$</text><text id="cur" x="34.4" y="404" font-family="'Fira Code','Courier New',Courier,monospace" font-size="14" class="hi">_</text>
+<text x="26" y="434" font-family="'Fira Code','Courier New',Courier,monospace" font-size="11" class="dim">ASCII art by scripts/ascii_art.py · refreshed by GitHub Actions</text>
+</svg>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 300" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Dhruv Bhadhotiya, animated ASCII terminal header">
+<style>
+:root{
+  --bg:#0d0b07;
+  --fg:#ffb000;
+  --accent:#ffcc66;
+}
+.bg{fill:var(--bg);}
+.glow{fill:var(--fg);}
+.hi{fill:var(--accent);}
+.scanstop{stop-color:var(--accent);}
+/* .85 not .55: at .55 the tagline flattens to 2.47:1 on the light palette, and this
+   file is role="img" so legibility is the only channel there is. .85 measures 4.51:1. */
+.dim{opacity:.85;}
+@keyframes phosphor{0%,100%{opacity:.86}50%{opacity:1}}
+@keyframes jitter{
+  0%,92%,100%{transform:translateX(0)}
+  93%{transform:translateX(1.5px)}
+  94%{transform:translateX(-1.5px)}
+  95%{transform:translateX(.8px)}
+  96%{transform:translateX(0)}
+}
+@keyframes sweep{from{transform:translateY(-80px)}to{transform:translateY(300px)}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+#name{animation:phosphor 5s ease-in-out infinite, jitter 7s steps(1,end) infinite}
+#scan{animation:sweep 6s linear infinite}
+#cur{animation:blink 1.1s step-end infinite}
+@media (prefers-color-scheme: light){:root{--bg:#fdf6e3;--fg:#8a4b00;--accent:#b35c00}}
+@media (prefers-reduced-motion: reduce){
+  #name,#scan,#cur{animation:none}
+}
+</style>
+<defs>
+  <linearGradient id="scanline" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" class="scanstop" stop-opacity="0"/>
+    <stop offset="50%" class="scanstop" stop-opacity=".14"/>
+    <stop offset="100%" class="scanstop" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+<rect class="bg" x="0" y="0" width="620" height="300"/>
+<g id="scan"><rect x="0" y="0" width="620" height="80" fill="url(#scanline)"/></g>
+<text id="name" class="glow" x="20" y="96" font-family="'Fira Code','Courier New',Courier,monospace" font-size="17" font-weight="700" letter-spacing="0" xml:space="preserve">
+<tspan x="20" y="96" class="glow"> ____       _   _      ____       _   _     __     __  </tspan>
+<tspan x="20" y="115" class="glow">|  _ \     | | | |    |  _ \     | | | |    \ \   / /  </tspan>
+<tspan x="20" y="134" class="glow">| | | |    | |_| |    | |_) |    | | | |     \ \ / /   </tspan>
+<tspan x="20" y="153" class="glow">| |_| |    |  _  |    |  _ &lt;     | |_| |      \ V /    </tspan>
+<tspan x="20" y="172" class="glow">|____/     |_| |_|    |_| \_\     \___/        \_/     </tspan>
+<tspan x="20" y="191" class="glow">                                                       </tspan>
+</text>
+<text x="20" y="262" font-family="'Fira Code','Courier New',Courier,monospace" font-size="13" class="hi">~/bhadhotiya</text>
+<text x="152" y="262" font-family="'Fira Code','Courier New',Courier,monospace" font-size="13" class="glow dim">// full-stack + applied ml</text>
+<rect id="cur" x="366" y="250" width="8" height="15" class="hi"/>
+</svg>

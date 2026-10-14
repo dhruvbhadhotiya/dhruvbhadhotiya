@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Live identity card placeholder, awaiting first workflow run">
+<style>
+:root{--bg:#282828;--fg:#ebdbb2;--accent:#fe8019}
+</style>
+<rect x="0" y="0" width="520" height="220" rx="8" style="fill:var(--bg)"/>
+<rect x="0.5" y="0.5" width="519" height="219" rx="8" fill="none" style="stroke:var(--fg);stroke-opacity:.2"/>
+<text x="260" y="104" text-anchor="middle" style="fill:var(--accent)" font-family="'Fira Code','Courier New',Courier,monospace" font-size="14">$ whoami</text>
+<text x="260" y="130" text-anchor="middle" style="fill:var(--fg)" font-family="'Fira Code','Courier New',Courier,monospace" font-size="12">awaiting first run of profile-assets</text>
+</svg>
