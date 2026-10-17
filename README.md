@@ -83,7 +83,7 @@ Jupyter · Docker
 ```
 
 > <!-- quote:start -->
-> The best way to predict the future is to invent it. — Alan Kay
+> Make it work, make it right, make it fast. — Kent Beck
 > <!-- quote:end -->
 
 `./contact.sh` → [dhruvbhadhotiya@gmail.com](mailto:dhruvbhadhotiya@gmail.com) · [LinkedIn](https://www.linkedin.com/in/dhruv-bhadhotiya) · [X](https://x.com/DhruvBhadhotiya) · portfolio: *coming soon*
