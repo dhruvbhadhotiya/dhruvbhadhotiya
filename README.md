@@ -83,7 +83,7 @@ Jupyter · Docker
 ```
 
 > <!-- quote:start -->
-> Make it work, make it right, make it fast. — Kent Beck
+> Testing shows the presence, not the absence of bugs. — Edsger Dijkstra
 > <!-- quote:end -->
 
 `./contact.sh` → [dhruvbhadhotiya@gmail.com](mailto:dhruvbhadhotiya@gmail.com) · [LinkedIn](https://www.linkedin.com/in/dhruv-bhadhotiya) · [X](https://x.com/DhruvBhadhotiya) · portfolio: *coming soon*
