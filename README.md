@@ -83,7 +83,7 @@ Jupyter · Docker
 ```
 
 > <!-- quote:start -->
-> Talk is cheap. Show me the code. — Linus Torvalds
+> Premature optimization is the root of all evil. — Donald Knuth
 > <!-- quote:end -->
 
 `./contact.sh` → [dhruvbhadhotiya@gmail.com](mailto:dhruvbhadhotiya@gmail.com) · [LinkedIn](https://www.linkedin.com/in/dhruv-bhadhotiya) · [X](https://x.com/DhruvBhadhotiya) · portfolio: *coming soon*
