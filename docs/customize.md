@@ -108,7 +108,7 @@ Nothing appears on your profile until the repo is pushed to GitHub.
 
 ### Step 2 — Give the workflow permission to write
 
-GitHub Actions defaults to read-only permissions. Three of the four jobs push a commit
+GitHub Actions defaults to read-only permissions. All four jobs push a commit
 back to this repository, and all of them fail without this setting.
 
 1. Open **Settings** on the repository (the tab next to *Code*, *Issues*, *Pull requests*).
@@ -373,6 +373,7 @@ under roughly 72 columns will be too coarse to read as a face.
 |---|---|---|
 | Contribution chart, identity card and avatar are flat colour rectangles | The workflow has never completed a successful run | Run `profile-assets` once from the Actions tab (section 3) |
 | A job fails at `git push` with a permission error | Workflow permissions are still read-only | Settings → Actions → General → Workflow permissions → **Read and write** |
+| A job fails at `git push` with `! [rejected] HEAD -> main (fetch first)` | Another job pushed to `main` first, so this job's push was no longer a fast-forward | The workflow rebases onto `main` before pushing, so this only happens if the rebase itself conflicts — re-run the workflow |
 | A job fails on every run even though permissions are set | The setting is on the repository, not on your user account | Open the repository's Settings, not your account Settings |
 | Contribution chart is missing or stale, other jobs fine | The `stefashkaa/github-profile-crt` job failed on its own | Open that job's Actions log — it runs independently of the other three |
 | Chart is blank but the job succeeded | Private contributions are not counted for the chart | Enable private contributions in your GitHub profile settings, or accept that the chart shows public activity only |

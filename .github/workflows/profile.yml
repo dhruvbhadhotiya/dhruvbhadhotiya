@@ -30,7 +30,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/ascii-avatar.svg
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: refresh ascii avatar [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: refresh ascii avatar [skip ci]" && git pull --rebase origin main && git push)
 
   crt-contrib:
     name: crt contribution chart
@@ -43,8 +43,18 @@ jobs:
           github-user: ${{ github.repository_owner }}
           output-dir: assets
           themes: amber
-          commit-and-push: "true"
+          commit-and-push: "false"
           minify-svg: "true"
+      # The action's own commit-and-push pushes the branch it was checked out at, so a
+      # sibling job landing on main first makes it fail for good -- it has no way to
+      # rebase. Committing here instead puts this job on the same footing as the
+      # others: rebase onto main, then push.
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: Update CRT contribution SVGs [skip ci]" && git pull --rebase origin main && git push)
 
   terminal-stats:
     name: terminal identity card
@@ -67,7 +77,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/terminal-stats.svg
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: refresh terminal card [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: refresh terminal card [skip ci]" && git pull --rebase origin main && git push)
 
   quote:
     name: rotate footer quote
@@ -84,4 +94,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: rotate quote [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: rotate quote [skip ci]" && git pull --rebase origin main && git push)
