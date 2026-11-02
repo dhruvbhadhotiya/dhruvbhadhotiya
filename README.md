@@ -83,7 +83,7 @@ Jupyter · Docker
 ```
 
 > <!-- quote:start -->
-> The most damaging phrase in the language is 'we've always done it this way'. — Grace Hopper
+> It always seems impossible until it's done. — Nelson Mandela
 > <!-- quote:end -->
 
 `./contact.sh` → [dhruvbhadhotiya@gmail.com](mailto:dhruvbhadhotiya@gmail.com) · [LinkedIn](https://www.linkedin.com/in/dhruv-bhadhotiya) · [X](https://x.com/DhruvBhadhotiya) · portfolio: *coming soon*
