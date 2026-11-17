@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 /**
- * generate-assets.mjs
+ * generate-assets.mjs — AETHER (v2) SVG asset generator
  * ---------------------------------------------------------------------------
- * Dependency-free (Node built-ins only) asset generator for the
- * "ORBIT // dev console" GitHub profile.
+ * PURPOSE
+ *   Regenerate every decorative SVG used by the GitHub profile README in the
+ *   AETHER design system (editorial serif + restrained violet/cyan accents).
+ *   Dependency-free Node ESM: only node:fs / node:path / node:url are used.
  *
- * INPUTS  (read-only):
- *   data/profile.json  -> all personal content (hero, socials, about, now,
- *                         projects, toolbox, milestones, activity, footer)
- *   data/stats.json    -> numeric github + leetcode stats
+ * INPUTS (read-only)
+ *   data/profile.json -> hero, socials, about, now, projects, toolbox,
+ *                        milestones, activity, footer (all display copy)
+ *   data/stats.json   -> github + leetcode numeric metrics
  *
- * OUTPUTS (idempotent; safe to re-run):
+ * OUTPUTS (idempotent; safe to re-run)
  *   assets/<base>-light.svg and assets/<base>-dark.svg for every base in the
- *   manifest from ARCHITECTURE.md: hero, footer, 10 headers, 6 buttons,
- *   4 info cards, 4 project cards, 3 live stat cards, and 5 ttt tiles.
+ *   manifest below: hero, footer, 9 headers, 6 buttons, 4 info cards,
+ *   4 project cards, 3 live stat cards  =>  28 bases x 2 = 56 SVGs.
+ *   Legacy tic-tac-toe tiles (assets/ttt/) and header-play-*.svg are removed.
  *
- * Both themes share identical layout; only background/text/line colors swap.
- * Accent swatches (cyan / violet / amber) stay identical across themes.
- * No fonts are embedded -- only CSS font stacks are referenced.
+ * Both themes share identical layout; only canvas/surface/text colors swap.
+ * Accent colors come straight from theme(mode) (darker variants on light).
+ * No JavaScript, no embedded fonts -- font stacks are referenced by name only.
  * ---------------------------------------------------------------------------
  */
 
@@ -36,56 +39,39 @@ const stats = JSON.parse(fs.readFileSync(path.join(DATA, 'stats.json'), 'utf8'))
 let written = 0;
 
 /* -------------------------------------------------------------------------- */
-/* Font stacks                                                                 */
-/* -------------------------------------------------------------------------- */
-const FONT_H = 'Inter, system-ui, -apple-system, sans-serif';
-const FONT_M = 'ui-monospace, SFMono-Regular, \'JetBrains Mono\', Consolas, monospace';
-
-/* -------------------------------------------------------------------------- */
-/* Theme                                                                       */
+/* Theme — EXACT palette values from DESIGN.md                                */
 /* -------------------------------------------------------------------------- */
 function theme(mode) {
-  const common = {
-    // Accents stay identical in both themes.
-    cyan: '#38E1FF',
-    violet: '#B98CFF',
-    amber: '#FFC978',
-  };
   if (mode === 'dark') {
     return {
-      ...common,
-      bg: '#070B19',
-      bg2: '#0F1730',
-      panel: '#0F1730',
-      panel2: '#16204A',
-      text: '#E8EEFF',
-      muted: '#8FA0C8',
-      faint: '#62749F',
-      grid: '#1E2A4A',
-      stroke: '#26345E',
-      accentText: '#38E1FF', // readable accent-colored text on dark
+      canvas: '#0A0E1A', canvasDeep: '#070A13', surface: '#131A2A', raised: '#1A2336',
+      border: '#2A3550', ink: '#F1F5F9', muted: '#94A3B8',
+      violet: '#8B5CF6', cyan: '#06B6D4', cyanText: '#67E8F9',
+      lime: '#A3E635', warm: '#FB7185',
     };
   }
   return {
-    ...common,
-    bg: '#F3F6FF',
-    bg2: '#E8EEFC',
-    panel: '#FFFFFF',
-    panel2: '#EEF3FF',
-    text: '#111B36',
-    muted: '#4B5D87',
-    faint: '#7E8CB0',
-    grid: '#D5DEF2',
-    stroke: '#C4D0EC',
-    accentText: '#0B7E9C', // contrast-safe cyan for text on light
+    canvas: '#F5F7FA', canvasDeep: '#EAEFF5', surface: '#FFFFFF', raised: '#F0F4F9',
+    border: '#D5DEEA', ink: '#0F172A', muted: '#5B6B80',
+    violet: '#6D28D9', cyan: '#0E7490', cyanText: '#0E7490',
+    lime: '#4D7C0F', warm: '#E11D48',
   };
 }
 
 /* -------------------------------------------------------------------------- */
-/* Generic helpers                                                             */
+/* Font stacks — single quotes around spaced names so XML attrs stay valid    */
+/* -------------------------------------------------------------------------- */
+const FONT = {
+  display: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+  body: "Inter, system-ui, -apple-system, sans-serif",
+  mono: "ui-monospace, SFMono-Regular, Consolas, monospace",
+};
+
+/* -------------------------------------------------------------------------- */
+/* Core helpers                                                               */
 /* -------------------------------------------------------------------------- */
 
-// Escape every character that is special in XML text/attributes.
+// Escape every character that is special in XML text and attributes.
 function esc(v) {
   return String(v ?? '')
     .replace(/&/g, '&amp;')
@@ -95,12 +81,7 @@ function esc(v) {
     .replace(/'/g, '&apos;');
 }
 
-// Strip markdown backticks from display strings, then escape.
-function clean(v) {
-  return esc(String(v ?? '').replace(/`/g, ''));
-}
-
-// Greedy word wrap by character count. Long tokens are hard-split.
+// Greedy word wrap by character count; hard-splits long tokens; ellipsizes.
 function wrap(text, max, maxLines = 99) {
   const words = String(text ?? '').trim().split(/\s+/).filter(Boolean);
   const lines = [];
@@ -125,21 +106,13 @@ function wrap(text, max, maxLines = 99) {
   return lines;
 }
 
-// Root element: always xmlns + viewBox + width + height + <title>.
-function svgRoot(w, h, title, body) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(title)}">`
-    + `<title>${esc(title)}</title>`
-    + body
-    + `</svg>\n`;
-}
-
-// Text element with consistent font handling.
+// Text node. font: 'display' | 'body' | 'mono'. Escapes the string content.
 function txt(x, y, str, o = {}) {
   const a = [
     `x="${x}"`,
     `y="${y}"`,
-    `fill="${o.fill}"`,
-    `font-family="${o.font === 'mono' ? FONT_M : FONT_H}"`,
+    `fill="${o.fill ?? '#111111'}"`,
+    `font-family="${FONT[o.font] || FONT.body}"`,
     `font-size="${o.size ?? 16}"`,
     `font-weight="${o.weight ?? 400}"`,
   ];
@@ -147,129 +120,101 @@ function txt(x, y, str, o = {}) {
   if (o.ls != null) a.push(`letter-spacing="${o.ls}"`);
   if (o.opacity != null) a.push(`opacity="${o.opacity}"`);
   if (o.style) a.push(`font-style="${o.style}"`);
+  if (o.stroke) a.push(`stroke="${o.stroke}"`);
+  if (o.sw != null) a.push(`stroke-width="${o.sw}"`);
   return `<text ${a.join(' ')}>${esc(str)}</text>`;
 }
 
-// Thin rule with a soft glow halo beneath it.
-function rule(x1, y, x2, t, o = {}) {
-  const c = o.color || t.cyan;
-  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${c}" stroke-width="${o.w ?? 1.6}" opacity="${o.opacity ?? 0.8}"/>`
-    + `<line x1="${x1}" y1="${y + 3}" x2="${x2}" y2="${y + 3}" stroke="${c}" stroke-width="7" opacity="0.10"/>`;
+// Root <svg>: xmlns, viewBox, width, height, role, aria-label and <title>.
+function svgRoot(w, h, label, content) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" `
+    + `viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}">`
+    + `<title>${esc(label)}</title>`
+    + content
+    + `</svg>\n`;
 }
 
-// Full-bleed background with faint dot grid.
-function backdrop(t, w, h, o = {}) {
-  const id = o.id || 'bg';
-  let s = `<rect width="${w}" height="${h}" fill="${t.bg}"/>`;
-  if (o.dots !== false) {
-    s += `<defs><pattern id="${id}-dots" width="26" height="26" patternUnits="userSpaceOnUse">`
-      + `<circle cx="1" cy="1" r="1" fill="${t.grid}"/></pattern></defs>`;
-    s += `<rect width="${w}" height="${h}" fill="url(#${id}-dots)" opacity="0.6"/>`;
-  }
-  return s;
-}
-
-// Rounded panel (card surface).
+// Rounded surface panel.
 function panel(x, y, w, h, t, o = {}) {
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${o.r ?? 18}" `
-    + `fill="${o.fill || t.panel}" stroke="${o.stroke || t.stroke}" stroke-width="${o.sw ?? 1.5}"/>`;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${o.r ?? 14}" `
+    + `fill="${o.fill || t.surface}" stroke="${o.stroke || t.border}" `
+    + `stroke-width="${o.sw ?? 1.25}"/>`;
 }
 
-// Concentric orbital rings + a few nodes + a glowing core.
-function orbits(cx, cy, t, o = {}) {
-  const radii = o.radii || [66, 104, 144, 186];
-  const palette = [t.cyan, t.violet, t.amber, t.cyan];
-  let s = '<g fill="none">';
-  radii.forEach((r, i) => {
-    s += `<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${palette[i % 4]}" `
-      + `stroke-width="${i === 0 ? 1.6 : 1}" opacity="${Math.max(0.10, 0.32 - i * 0.055).toFixed(3)}"/>`;
-  });
-  s += '</g>';
-  const nodes = o.nodes || [
-    { a: -35, r: radii[1] || 104, c: t.cyan },
-    { a: 120, r: radii[2] || 144, c: t.violet },
-    { a: 205, r: radii[3] || 186, c: t.amber },
-  ];
-  for (const n of nodes) {
-    const rad = (n.a * Math.PI) / 180;
-    const x = (cx + Math.cos(rad) * n.r).toFixed(1);
-    const y = (cy + Math.sin(rad) * n.r).toFixed(1);
-    s += `<circle cx="${x}" cy="${y}" r="4" fill="${n.c}" opacity="0.9"/>`;
-  }
-  s += `<circle cx="${cx}" cy="${cy}" r="24" fill="${t.cyan}" opacity="0.12"/>`;
-  s += `<circle cx="${cx}" cy="${cy}" r="11" fill="${t.cyan}" opacity="0.9"/>`;
-  s += `<circle cx="${cx}" cy="${cy}" r="4" fill="${t.bg}"/>`;
-  return s;
+// Horizontal rule: gradient (o.grad) or solid (o.color) stroke.
+function rule(x1, y, x2, t, o = {}) {
+  const stroke = o.grad ? `url(#${o.grad})` : (o.color || t.violet);
+  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" `
+    + `stroke="${stroke}" stroke-width="${o.w ?? 2}" `
+    + `stroke-linecap="round" opacity="${o.opacity ?? 0.85}"/>`;
 }
 
-// Small pill chip (skills / tags). Returns markup and its computed width.
+// Linear gradient def. Coordinates default to objectBoundingBox (0..1).
+function grad(id, x1, y1, x2, y2, stops) {
+  return `<linearGradient id="${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">`
+    + stops.map(s => `<stop offset="${s.o}" stop-color="${s.c}"`
+        + `${s.a != null ? ` stop-opacity="${s.a}"` : ''}/>`).join('')
+    + `</linearGradient>`;
+}
+
+// Radial gradient def (used for soft glow blobs and monogram washes).
+function radial(id, stops) {
+  return `<radialGradient id="${id}">`
+    + stops.map(s => `<stop offset="${s.o}" stop-color="${s.c}"`
+        + `${s.a != null ? ` stop-opacity="${s.a}"` : ''}/>`).join('')
+    + `</radialGradient>`;
+}
+
+// Gaussian blur filter def for ambient lighting.
+function blur(id, sd) {
+  return `<filter id="${id}" x="-60%" y="-60%" width="220%" height="220%">`
+    + `<feGaussianBlur stdDeviation="${sd}"/>`
+    + `</filter>`;
+}
+
+// Fine diagonal hatch pattern def.
+function hatch(id, t, o = {}) {
+  return `<pattern id="${id}" width="${o.gap ?? 10}" height="${o.gap ?? 10}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(${o.angle ?? 45})">`
+    + `<line x1="0" y1="0" x2="0" y2="${o.gap ?? 10}" `
+    + `stroke="${o.color || t.border}" stroke-width="${o.sw ?? 1}"/>`
+    + `</pattern>`;
+}
+
+// Wrap defs chunks in a single <defs> element.
+function defs(...chunks) {
+  return `<defs>${chunks.filter(Boolean).join('')}</defs>`;
+}
+
+// Small chip. o.style: 'pill' (default) or 'dot' (flat, no box).
+// Returns { svg, w } so callers can advance the cursor.
 function chip(x, y, label, t, o = {}) {
-  const fs = o.size ?? 13;
-  const h = o.h ?? 28;
-  const w = Math.round(label.length * fs * 0.62 + 24);
-  const c = o.color || t.cyan;
-  let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" `
-    + `fill="${c}" opacity="0.10" stroke="${c}" stroke-opacity="0.45"/>`;
-  s += txt(x + 12, y + h / 2 + fs * 0.35, label, {
-    fill: o.textFill || t.text, font: 'mono', size: fs,
-  });
+  const fs = o.size ?? 12;
+  const h = o.h ?? 24;
+  const w = Math.round(String(label).length * fs * 0.60 + (o.style === 'dot' ? 18 : 24));
+  const color = o.color || t.cyan;
+  if (o.style === 'dot') {
+    return {
+      svg: `<circle cx="${x + 3}" cy="${y + h / 2}" r="2.5" fill="${color}" opacity="0.9"/>`
+        + txt(x + 14, y + h / 2 + fs * 0.35, label, { fill: o.textFill || t.ink, size: fs }),
+      w,
+    };
+  }
+  const s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" `
+    + `fill="${t.raised}" stroke="${color}" stroke-opacity="0.45" stroke-width="1"/>`
+    + txt(x + 12, y + h / 2 + fs * 0.35, label,
+        { fill: o.textFill || t.ink, size: fs, font: 'mono' });
   return { svg: s, w };
 }
 
-// Lay a list of chip labels out into rows that fit a given width.
-function chipRows(items, maxW) {
-  const rows = [];
-  let row = [];
-  let used = 0;
-  const gap = 8;
-  for (const it of items) {
-    const w = Math.round(it.length * 13 * 0.62 + 24);
-    if (row.length && used + gap + w > maxW) {
-      rows.push(row);
-      row = [];
-      used = 0;
-    }
-    used += w + (row.length ? gap : 0);
-    row.push({ label: it, w });
-  }
-  if (row.length) rows.push(row);
-  return rows;
+// Full-bleed canvas background. Optionally overlay a subtle diagonal hatch.
+function backdrop(t, w, h, o = {}) {
+  let s = `<rect width="${w}" height="${h}" fill="${t.canvas}"/>`;
+  if (o.hatch) s += `<rect width="${w}" height="${h}" fill="url(#${o.hatch})" opacity="${o.hatchOpacity ?? 0.05}"/>`;
+  return s;
 }
 
-// Minimal, original line-art social icons.
-function icon(kind, cx, cy, color) {
-  const g = (inner) => `<g transform="translate(${cx},${cy})" fill="none" stroke="${color}" `
-    + `stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${inner}</g>`;
-  switch (kind) {
-    case 'github':
-      return g(`<circle cx="0" cy="1" r="9"/>`
-        + `<circle cx="-4.5" cy="-7" r="2.6" fill="${color}" stroke="none"/>`
-        + `<circle cx="4.5" cy="-7" r="2.6" fill="${color}" stroke="none"/>`
-        + `<circle cx="-3" cy="-1" r="1.1" fill="${color}" stroke="none"/>`
-        + `<circle cx="3" cy="-1" r="1.1" fill="${color}" stroke="none"/>`
-        + `<path d="M-3 4 q3 3 6 0"/>`);
-    case 'linkedin':
-      return g(`<rect x="-10" y="-10" width="20" height="20" rx="4"/>`
-        + `<text x="0" y="5" text-anchor="middle" fill="${color}" stroke="none" `
-        + `font-family="${FONT_M}" font-size="11" font-weight="700">in</text>`);
-    case 'youtube':
-      return g(`<rect x="-11" y="-7.5" width="22" height="15" rx="4"/>`
-        + `<path d="M-3 -3.5 L5 0 L-3 3.5 Z" fill="${color}" stroke="none"/>`);
-    case 'leetcode':
-      return g(`<path d="M-3 -7 L-9 0 L-3 7"/><path d="M3 -7 L9 0 L3 7"/>`
-        + `<line x1="-1.5" y1="0" x2="1.5" y2="0"/>`);
-    case 'x':
-      return g(`<line x1="-8" y1="-8" x2="8" y2="8" stroke-width="2.4"/>`
-        + `<line x1="8" y1="-8" x2="-8" y2="8" stroke-width="2.4"/>`);
-    case 'email':
-      return g(`<rect x="-11" y="-7.5" width="22" height="15" rx="2"/>`
-        + `<path d="M-11 -6 L0 2 L11 -6"/>`);
-    default:
-      return g(`<circle cx="0" cy="0" r="7"/>`);
-  }
-}
-
-// Write a generated SVG to disk, creating parent directories as needed.
+// Write one generated SVG (creating parent dirs as needed).
 function write(name, svg) {
   const dest = path.join(ASSETS, name);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -278,451 +223,520 @@ function write(name, svg) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Shared section titles                                                       */
-/* -------------------------------------------------------------------------- */
-function sectionTitle(t, label, color, x = 40, y = 46) {
-  return `<rect x="${x - 2}" y="${y - 20}" width="4" height="26" rx="2" fill="${color}"/>`
-    + txt(x + 14, y, label, { font: 'mono', size: 13, fill: t.accentText, ls: 2 });
-}
-
-/* -------------------------------------------------------------------------- */
-/* HERO (1200 x 430)                                                           */
+/* HERO (1200 x 470) — mesh glow, huge serif name on 2 lines                  */
 /* -------------------------------------------------------------------------- */
 function buildHero(t) {
-  const w = 1200;
-  const h = 430;
+  const w = 1200, h = 470;
   const H = profile.hero;
-  let s = backdrop(t, w, h, { id: 'hero' });
-  s += orbits(965, 205, t, { radii: [66, 104, 144, 186] });
+  const words = String(H.name).trim().split(/\s+/);
+  const parts = words.length > 1 ? [words.slice(0, -1).join(' '), words[words.length - 1]] : [words[0]];
 
-  // Corner brackets for the "console" frame.
-  for (const [bx, by, dx, dy] of [
-    [24, 24, 1, 1], [1176, 24, -1, 1], [24, 406, 1, -1], [1176, 406, -1, -1],
-  ]) {
-    s += `<path d="M${bx + dx * 16} ${by} H${bx} V${by + dy * 16}" fill="none" `
-      + `stroke="${t.cyan}" stroke-width="2" opacity="0.45"/>`;
-  }
+  let d = defs(
+    radial('hero-rv', [{ o: '0%', c: t.violet, a: 0.55 }, { o: '100%', c: t.violet, a: 0 }]),
+    radial('hero-rc', [{ o: '0%', c: t.cyan, a: 0.50 }, { o: '100%', c: t.cyan, a: 0 }]),
+    radial('hero-rl', [{ o: '0%', c: t.lime, a: 0.22 }, { o: '100%', c: t.lime, a: 0 }]),
+    blur('hero-blur', 30),
+    grad('hero-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    hatch('hero-hatch', t, { gap: 12, sw: 0.7 }),
+  );
 
-  s += txt(56, 52, '// ORBIT — DEV CONSOLE', { font: 'mono', size: 13, fill: t.accentText, ls: 2 });
-  s += txt(1144, 52, 'PROFILE / 00', { font: 'mono', size: 12, fill: t.muted, anchor: 'end', ls: 1 });
+  let s = d + backdrop(t, w, h, { hatch: 'hero-hatch', hatchOpacity: 0.035 });
+  // Ambient mesh lighting: overlapping blurred radial blobs, top-right.
+  s += `<g filter="url(#hero-blur)">`
+    + `<ellipse cx="980" cy="120" rx="300" ry="250" fill="url(#hero-rv)"/>`
+    + `<ellipse cx="1110" cy="250" rx="270" ry="270" fill="url(#hero-rc)" opacity="0.85"/>`
+    + `<ellipse cx="860" cy="40" rx="210" ry="170" fill="url(#hero-rl)" opacity="0.7"/>`
+    + `</g>`;
 
-  s += txt(56, 152, H.name, { size: 66, weight: 800, fill: t.text, ls: 1 });
-  s += rule(56, 176, 720, t, { color: t.cyan, w: 2, opacity: 0.9 });
-  s += txt(56, 220, H.role, { size: 26, weight: 600, fill: t.violet });
-  s += txt(56, 262, H.tagline, { size: 20, fill: t.muted });
+  s += txt(64, 56, 'AETHER  /  PROFILE  2026', { font: 'mono', size: 12, fill: t.muted, ls: 2.2 });
+  s += txt(64, 196, parts[0] || '', { font: 'display', size: 106, fill: t.ink, weight: 400, ls: -2 });
+  if (parts[1]) s += txt(64, 308, parts[1], { font: 'display', size: 106, fill: t.ink, weight: 400, ls: -2 });
+  s += rule(64, 340, 300, t, { grad: 'hero-rule', w: 3 });
+  s += txt(64, 376, H.role, { font: 'mono', size: 18, fill: t.cyanText, ls: 0.6 });
+  s += txt(64, 410, H.tagline, { font: 'display', size: 21, fill: t.muted, style: 'italic' });
 
-  const pillW = Math.round(H.status.length * 8.3 + 52);
-  s += `<rect x="56" y="292" width="${pillW}" height="40" rx="20" fill="${t.amber}" `
-    + `opacity="0.10" stroke="${t.amber}" stroke-opacity="0.55"/>`;
-  s += `<circle cx="78" cy="312" r="6" fill="${t.amber}"/>`;
-  s += txt(94, 318, H.status, { font: 'mono', size: 14, fill: t.text, ls: 1 });
+  // Hairline footer.
+  s += rule(64, 430, 1136, t, { grad: 'hero-rule', w: 1, opacity: 0.55 });
+  s += txt(64, 456, H.coordinates, { font: 'mono', size: 13, fill: t.muted, ls: 1 });
 
-  s += txt(56, 386, `⌖ ${H.coordinates}`, { font: 'mono', size: 14, fill: t.faint, ls: 1 });
-  s += txt(1144, 386, 'ORBIT // v1.0', { font: 'mono', size: 12, fill: t.faint, anchor: 'end' });
+  const status = H.status;
+  const pillW = Math.round(status.length * 7.1 + 46);
+  const px = 1136 - pillW;
+  s += `<rect x="${px}" y="436" width="${pillW}" height="30" rx="15" `
+    + `fill="${t.raised}" stroke="${t.border}" stroke-width="1"/>`;
+  s += `<circle cx="${px + 18}" cy="451" r="4.5" fill="${t.lime}"/>`;
+  s += txt(px + 32, 455, status, { font: 'mono', size: 12, fill: t.cyanText, ls: 0.7 });
   return svgRoot(w, h, `${H.name} — ${H.role}`, s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* FOOTER (1200 x 120)                                                         */
+/* FOOTER (1200 x 150) — gradient ribbon + diamond sigil                      */
 /* -------------------------------------------------------------------------- */
 function buildFooter(t) {
-  const w = 1200;
-  const h = 120;
-  let s = backdrop(t, w, h, { id: 'foot', dots: false });
-  s += `<line x1="0" y1="2" x2="${w}" y2="2" stroke="${t.violet}" stroke-width="2" opacity="0.6"/>`;
-  s += orbits(62, 62, t, { radii: [16, 26, 36] });
-  s += txt(122, 56, profile.footer, { size: 18, weight: 500, fill: t.text });
-  s += txt(122, 84, `© 2026 ${profile.user.toUpperCase()} · ORBIT // DEV CONSOLE`, {
-    font: 'mono', size: 12, fill: t.muted, ls: 1,
+  const w = 1200, h = 150;
+  let d = defs(
+    grad('foot-ribbon', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    radial('foot-wash', [{ o: '0%', c: t.violet, a: 0.20 }, { o: '100%', c: t.violet, a: 0 }]),
+    blur('foot-blur', 22),
+  );
+  let s = d + backdrop(t, w, h);
+  s += `<ellipse cx="90" cy="150" rx="220" ry="120" fill="url(#foot-wash)" filter="url(#foot-blur)"/>`;
+  s += `<rect x="0" y="0" width="${w}" height="4" fill="url(#foot-ribbon)"/>`;
+
+  // Diamond sigil.
+  s += `<g transform="translate(58,76) rotate(45)">`
+    + `<rect x="-17" y="-17" width="34" height="34" rx="3" fill="none" `
+    + `stroke="url(#foot-ribbon)" stroke-width="2"/>`
+    + `<rect x="-6" y="-6" width="12" height="12" rx="1" fill="${t.cyan}" opacity="0.85"/>`
+    + `</g>`;
+
+  const lines = wrap(profile.footer, 96, 2);
+  lines.forEach((ln, i) => { s += txt(110, 70 + i * 26, ln, { font: 'body', size: 17, fill: t.ink }); });
+  s += txt(110, 122, `© 2026 ${profile.user.toUpperCase()}  ·  AETHER / v2`, {
+    font: 'mono', size: 12, fill: t.muted, ls: 1.2,
   });
-  s += txt(1144, 68, `@${profile.user}`, { font: 'mono', size: 14, fill: t.accentText, anchor: 'end' });
+  s += txt(1140, 82, `@${profile.user}`, {
+    font: 'mono', size: 16, fill: t.cyanText, anchor: 'end', ls: 0.5,
+  });
   return svgRoot(w, h, `${profile.user} — footer`, s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* HEADERS (1200 x 92)                                                         */
+/* HEADERS (1200 x 96) — outline index numeral + serif title + gradient rule   */
 /* -------------------------------------------------------------------------- */
 const HEADERS = [
-  { key: 'about',            title: 'ABOUT',            kicker: '// 01 — IDENTITY' },
-  { key: 'now',              title: 'NOW',              kicker: '// 02 — CURRENT STATE' },
-  { key: 'work',             title: 'WORK',             kicker: '// 03 — SELECTED PROJECTS' },
-  { key: 'toolbox',          title: 'TOOLBOX',          kicker: '// 04 — STACK & TOOLS' },
-  { key: 'milestones',       title: 'EXPERIENCE',       kicker: '// 05 — RESEARCH & ACHIEVEMENTS' },
-  { key: 'contributions',    title: 'CONTRIBUTIONS',    kicker: '// 06 — LIVE METRICS' },
-  { key: 'problem-solving',  title: 'PROBLEM SOLVING',  kicker: '// 07 — ALGORITHMS' },
-  { key: 'play',             title: 'PLAY',             kicker: '// 08 — TIC TAC TOE' },
-  { key: 'activity',         title: 'ACTIVITY',         kicker: '// 09 — RECENT LOG' },
-  { key: 'contact',          title: 'CONTACT',          kicker: '// 10 — SAY HELLO' },
+  { key: 'about',            title: 'ABOUT',           kicker: 'IDENTITY & BACKGROUND' },
+  { key: 'now',              title: 'NOW',             kicker: 'CURRENT STATE' },
+  { key: 'work',             title: 'SELECTED WORK',   kicker: 'PROJECTS & SYSTEMS' },
+  { key: 'toolbox',          title: 'TOOLBOX',         kicker: 'STACK & TOOLS' },
+  { key: 'milestones',       title: 'EXPERIENCE',      kicker: 'RESEARCH & ACHIEVEMENTS' },
+  { key: 'contributions',    title: 'CONTRIBUTIONS',   kicker: 'LIVE GITHUB METRICS' },
+  { key: 'problem-solving',  title: 'PROBLEM SOLVING', kicker: 'ALGORITHMS & RANK' },
+  { key: 'activity',         title: 'ACTIVITY',        kicker: 'RECENT LOG' },
+  { key: 'contact',          title: 'CONTACT',         kicker: 'SAY HELLO' },
 ];
-const HEADER_ACCENTS = [t => t.cyan, t => t.violet, t => t.amber];
 
 function buildHeader(t, cfg, index) {
-  const w = 1200;
-  const h = 92;
-  const accent = HEADER_ACCENTS[index % 3](t);
-  let s = backdrop(t, w, h, { id: 'hdr' });
-  s += `<rect x="0" y="0" width="6" height="${h}" fill="${accent}"/>`;
-  s += txt(40, 61, String(index + 1).padStart(2, '0'), {
-    font: 'mono', size: 38, weight: 700, fill: t.accentText, ls: -1,
+  const w = 1200, h = 96;
+  const num = String(index + 1).padStart(2, '0');
+  const id = `hdr-${cfg.key}`;
+  let d = defs(
+    grad(`${id}-grad`, 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
+  // Giant translucent OUTLINE index numeral on the right.
+  s += txt(1160, 82, num, {
+    font: 'display', size: 150, fill: 'none', stroke: t.violet,
+    sw: 2.2, opacity: 0.16, anchor: 'end', ls: -6,
   });
-  s += txt(108, 33, cfg.kicker, { font: 'mono', size: 12, fill: t.muted, ls: 1.5 });
-  s += txt(108, 68, cfg.title, { size: 30, weight: 750, fill: t.text, ls: 0.6 });
-  s += rule(108, 80, 1140, t, { color: accent, w: 1.5, opacity: 0.75 });
-  s += `<circle cx="1160" cy="46" r="10" fill="none" stroke="${accent}" stroke-opacity="0.4"/>`;
-  s += `<circle cx="1160" cy="46" r="4" fill="${accent}"/>`;
-  return svgRoot(w, h, `${cfg.title} — section ${index + 1}`, s);
+  // Title (serif) + short mono kicker, left aligned.
+  s += txt(48, 46, cfg.title, { font: 'display', size: 34, fill: t.ink, ls: 0.3 });
+  s += txt(48, 70, cfg.kicker, { font: 'mono', size: 12, fill: t.cyanText, ls: 1.7 });
+  // 2px gradient rule whose length varies by section.
+  const ruleLen = Math.min(700, 210 + index * 62);
+  s += rule(48, 86, 48 + ruleLen, t, { grad: `${id}-grad`, w: 2 });
+  return svgRoot(w, h, `${cfg.title} — section ${num}`, s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* BUTTONS (180 x 52)                                                          */
+/* BUTTONS (200 x 56) — pill with gradient dot + label                        */
 /* -------------------------------------------------------------------------- */
-const BUTTON_ORDER = ['github', 'linkedin', 'youtube', 'leetcode', 'email', 'x'];
-const BUTTON_COLORS = {
-  github: 'cyan', linkedin: 'cyan', youtube: 'amber',
-  leetcode: 'amber', email: 'violet', x: 'violet',
-};
+const BUTTON_ORDER = ['github', 'linkedin', 'youtube', 'leetcode', 'x', 'email'];
 
-function buildButton(t, soc) {
-  const w = 180;
-  const h = 52;
-  const color = t[BUTTON_COLORS[soc.key]];
-  let s = `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="10" `
-    + `fill="${t.panel}" stroke="${t.stroke}" stroke-width="1.5"/>`;
-  s += `<rect x="1" y="1" width="4" height="${h - 2}" rx="2" fill="${color}"/>`;
-  s += icon(soc.key, 30, 26, color);
-  s += txt(52, 32, soc.label, { size: 16, weight: 600, fill: t.text });
-  return svgRoot(w, h, `${soc.label} link`, s);
+function buildButton(t, key, label) {
+  const w = 200, h = 56;
+  const id = `btn-${key}`;
+  let d = defs(
+    grad(`${id}-dot`, 0, 0, 1, 1, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="27" `
+    + `fill="${t.raised}" stroke="${t.border}" stroke-width="1.25"/>`;
+  s += `<circle cx="30" cy="28" r="7" fill="url(#${id}-dot)"/>`;
+  s += `<circle cx="30" cy="28" r="11" fill="none" stroke="url(#${id}-dot)" `
+    + `stroke-width="1" opacity="0.35"/>`;
+  s += txt(50, 35, label, { font: 'body', size: 17, fill: t.ink, weight: 600 });
+  s += txt(176, 35, '↗', { font: 'body', size: 15, fill: t.cyanText, anchor: 'end' });
+  return svgRoot(w, h, `${label} link`, s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* INFO CARD: ABOUT                                                            */
+/* INFO CARD: ABOUT (1200 x 330) — monogram + bio + fact baseline              */
 /* -------------------------------------------------------------------------- */
 function buildCardAbout(t) {
-  const w = 1200;
-  const h = 310;
-  let s = backdrop(t, w, h, { id: 'about' });
+  const w = 1200, h = 330;
+  const A = profile.about;
+  const initial = String(profile.hero.name).trim()[0] || 'A';
+  let d = defs(
+    radial('about-grad', [
+      { o: '0%', c: t.violet, a: 0.45 },
+      { o: '65%', c: t.cyan, a: 0.18 },
+      { o: '100%', c: t.cyan, a: 0 },
+    ]),
+    blur('about-blur', 8),
+    grad('about-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
   s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// ABOUT — IDENTITY', t.cyan);
 
-  let y = 90;
-  for (const line of profile.about.lines) {
-    for (const ln of wrap(line, 104)) {
-      s += txt(40, y, ln, { size: 18, fill: t.text });
-      y += 28;
+  // Soft gradient circle + monogram.
+  s += `<circle cx="130" cy="160" r="86" fill="url(#about-grad)" filter="url(#about-blur)"/>`;
+  s += `<circle cx="130" cy="160" r="72" fill="none" stroke="${t.border}" stroke-width="1.25"/>`;
+  s += txt(130, 200, initial, {
+    font: 'display', size: 110, fill: t.ink, opacity: 0.92, anchor: 'middle',
+  });
+
+  // Bio lines.
+  let y = 74;
+  for (const line of A.lines) {
+    for (const ln of wrap(line, 60)) {
+      s += txt(268, y, ln, { font: 'body', size: 17, fill: t.muted });
+      y += 26;
     }
   }
-  s += rule(40, y + 4, w - 40, t, { color: t.violet, w: 1, opacity: 0.35 });
 
-  const facts = profile.about.facts;
-  const colW = (w - 80) / facts.length;
+  // Facts as a 4-column baseline row.
+  s += rule(48, 246, w - 48, t, { grad: 'about-rule', w: 1, opacity: 0.5 });
+  const facts = A.facts.slice(0, 4);
+  const colW = (w - 96) / Math.max(1, facts.length);
   facts.forEach((f, i) => {
-    const x = 40 + i * colW;
-    s += txt(x, y + 46, f.k, { font: 'mono', size: 12, fill: t.amber, ls: 1.5 });
-    s += txt(x, y + 74, f.v, { size: 18, weight: 600, fill: t.text });
+    const x = 48 + i * colW;
+    if (i > 0) s += `<line x1="${x - 18}" y1="266" x2="${x - 18}" y2="308" stroke="${t.border}" stroke-width="1"/>`;
+    s += txt(x, 276, f.k, { font: 'mono', size: 11, fill: t.cyanText, ls: 1.5 });
+    s += txt(x, 304, f.v, { font: 'body', size: 16, fill: t.ink, weight: 600 });
   });
   return svgRoot(w, h, 'About — identity', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* INFO CARD: NOW (status console)                                             */
+/* INFO CARD: NOW (1200 x 320) — 3-column signal strip + sparkline + status    */
 /* -------------------------------------------------------------------------- */
 function buildCardNow(t) {
-  const w = 1200;
-  const h = 300;
+  const w = 1200, h = 320;
   const N = profile.now;
-  let s = backdrop(t, w, h, { id: 'now' });
+  let d = defs(
+    grad('now-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    grad('now-spark', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    grad('now-area', 0, 0, 0, 1, [{ o: '0%', c: t.cyan, a: 0.28 }, { o: '100%', c: t.cyan, a: 0 }]),
+    radial('now-dot', [{ o: '0%', c: t.lime, a: 0.9 }, { o: '100%', c: t.lime, a: 0 }]),
+  );
+  let s = d + backdrop(t, w, h);
   s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// NOW — CURRENT STATE', t.violet);
 
-  // "NOW PLAYING" banner with a small equalizer.
-  s += `<rect x="40" y="60" width="184" height="32" rx="8" fill="${t.amber}" `
-    + `opacity="0.10" stroke="${t.amber}" stroke-opacity="0.5"/>`;
-  s += `<path d="M55 70 L65 76 L55 82 Z" fill="${t.amber}"/>`;
-  s += txt(76, 82, 'NOW PLAYING', { font: 'mono', size: 13, fill: t.accentText, ls: 1.4 });
-  [10, 18, 28, 14, 22].forEach((bh, i) => {
-    s += `<rect x="${240 + i * 8}" y="${82 - bh / 2}" width="4" height="${bh}" rx="2" `
-      + `fill="${t.cyan}" opacity="${0.5 + i * 0.08}"/>`;
+  s += txt(48, 48, 'CURRENT STATE', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
+  s += `<circle cx="1108" cy="44" r="9" fill="url(#now-dot)"/>`;
+  s += `<circle cx="1108" cy="44" r="3.5" fill="${t.lime}"/>`;
+  s += txt(1132, 48, 'LIVE', { font: 'mono', size: 12, fill: t.cyanText, ls: 1.5, anchor: 'end' });
+
+  const cols = [
+    { k: 'BUILDING', v: N.building, c: t.cyanText },
+    { k: 'LEARNING', v: N.learning, c: t.violet },
+    { k: 'LISTENING', v: N.listening, c: t.cyanText },
+  ];
+  const colW = (w - 96) / 3;
+  cols.forEach((col, i) => {
+    const x = 48 + i * colW;
+    if (i > 0) s += `<line x1="${x - 24}" y1="84" x2="${x - 24}" y2="208" stroke="${t.border}" stroke-width="1"/>`;
+    s += rule(x, 84, x + colW - 48, t, { grad: 'now-rule', w: 2 });
+    s += txt(x, 110, col.k, { font: 'mono', size: 13, fill: col.c, ls: 1.8 });
+    let y = 140;
+    for (const ln of wrap(col.v, Math.round(colW / 10))) {
+      s += txt(x, y, ln, { font: 'body', size: 16, fill: t.ink });
+      y += 24;
+    }
   });
-  s += rule(40, 106, w - 40, t, { color: t.violet, w: 1, opacity: 0.35 });
 
-  // Left: BUILDING + progress.
-  s += txt(40, 136, '▸ BUILDING', { font: 'mono', size: 12, fill: t.cyan, ls: 1.5 });
-  let y = 166;
-  for (const ln of wrap(N.building, 60, 2)) { s += txt(40, y, ln, { size: 19, fill: t.text }); y += 27; }
-  s += `<rect x="40" y="222" width="500" height="8" rx="4" fill="${t.grid}"/>`;
-  s += `<rect x="40" y="222" width="310" height="8" rx="4" fill="${t.cyan}"/>`;
+  // Calm activity sparkline.
+  const vals = [10, 14, 9, 17, 13, 21, 16, 24, 19, 27, 22, 30];
+  const x0 = 48, x1 = 1152, base = 278, amp = 44;
+  const pts = vals.map((v, i) => ({
+    x: x0 + (x1 - x0) * (i / (vals.length - 1)),
+    y: base - (v / 30) * amp,
+  }));
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const area = `${line} L${x1} ${base} L${x0} ${base} Z`;
+  s += `<path d="${area}" fill="url(#now-area)"/>`;
+  s += `<path d="${line}" fill="none" stroke="url(#now-spark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const last = pts[pts.length - 1];
+  s += `<circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="${t.cyan}"/>`;
 
-  // Right: LEARNING + LISTENING.
-  s += txt(600, 136, '▸ LEARNING', { font: 'mono', size: 12, fill: t.violet, ls: 1.5 });
-  y = 166;
-  for (const ln of wrap(N.learning, 62, 2)) { s += txt(600, y, ln, { size: 19, fill: t.text }); y += 27; }
-  s += txt(600, 236, '▸ LISTENING', { font: 'mono', size: 12, fill: t.amber, ls: 1.5 });
-  for (const ln of wrap(N.listening, 62, 1)) { s += txt(600, 264, ln, { size: 17, fill: t.muted }); }
-
-  // Note strip.
-  s += `<rect x="40" y="266" width="4" height="22" rx="2" fill="${t.violet}"/>`;
-  s += txt(54, 282, N.note, { size: 15, fill: t.muted, style: 'italic' });
+  s += txt(48, 308, N.note, { font: 'body', size: 13, fill: t.muted, style: 'italic' });
   return svgRoot(w, h, 'Now — current state', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* INFO CARD: TOOLBOX                                                          */
+/* INFO CARD: TOOLBOX — 4 columns of flat chips + hairline dividers            */
 /* -------------------------------------------------------------------------- */
 function buildCardToolbox(t) {
   const w = 1200;
-  const ACCENTS = [t.cyan, t.violet, t.amber, t.cyan];
-  const groups = profile.toolbox;
-  const colW = (w - 80) / groups.length;
-  const allRows = groups.map(g => chipRows(g.items, colW - 16));
-  const maxRows = Math.max(...allRows.map(r => r.length));
-  const h = Math.max(220, 132 + maxRows * 38 + 16);
+  const groups = profile.toolbox.slice(0, 4);
+  const maxItems = Math.max(1, ...groups.map(g => g.items.length));
+  const h = 150 + maxItems * 30;
+  const dotColors = [t.cyan, t.violet, t.cyan, t.violet];
 
-  let s = backdrop(t, w, h, { id: 'toolbox' });
+  let d = defs(
+    grad('tool-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
   s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// TOOLBOX — STACK & TOOLS', t.cyan);
+  s += txt(48, 48, 'STACK & TOOLS', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
 
+  const colW = (w - 96) / Math.max(1, groups.length);
   groups.forEach((g, gi) => {
-    const x = 40 + gi * colW;
-    const color = ACCENTS[gi % ACCENTS.length];
-    s += rule(x, 76, x + colW - 24, t, { color, w: 1, opacity: 0.5 });
-    s += txt(x, 100, g.group, { font: 'mono', size: 12, fill: t.accentText, ls: 1.5 });
-    allRows[gi].forEach((row, ri) => {
-      let cx = x;
-      const cy = 116 + ri * 38;
-      for (const c of row) {
-        s += chip(cx, cy, c.label, t, { color }).svg;
-        cx += c.w + 8;
-      }
+    const x = 48 + gi * colW;
+    if (gi > 0) s += `<line x1="${x - 26}" y1="72" x2="${x - 26}" y2="${h - 40}" stroke="${t.border}" stroke-width="1"/>`;
+    s += rule(x, 78, x + colW - 52, t, { grad: 'tool-rule', w: 2 });
+    s += txt(x, 104, g.group, { font: 'mono', size: 12, fill: t.cyanText, ls: 1.6 });
+    g.items.forEach((item, ii) => {
+      s += chip(x, 120 + ii * 30, item, t, { style: 'dot', color: dotColors[gi], size: 15, h: 22 }).svg;
     });
   });
   return svgRoot(w, h, 'Toolbox — stack and tools', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* INFO CARD: MILESTONES                                                       */
+/* INFO CARD: MILESTONES — vertical timeline, gradient spine, alternating dots */
 /* -------------------------------------------------------------------------- */
 function buildCardMilestones(t) {
   const w = 1200;
   const items = profile.milestones;
-  const h = Math.max(380, 150 + items.length * 56);
-  let s = backdrop(t, w, h, { id: 'mile' });
-  s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// MILESTONES — TIMELINE', t.amber);
+  const firstY = 120, step = 64;
+  const h = firstY + Math.max(0, items.length - 1) * step + 78;
 
-  const lineX = 152;
-  const firstY = 112;
-  s += `<line x1="${lineX}" y1="${firstY}" x2="${lineX}" y2="${firstY + (items.length - 1) * 56}" `
-    + `stroke="${t.violet}" stroke-width="2" opacity="0.45"/>`;
+  let d = defs(
+    grad('mile-spine', 0, 0, 0, 1, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
+  s += panel(8, 8, w - 16, h - 16, t);
+  s += txt(48, 52, 'RESEARCH & ACHIEVEMENTS', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
+
+  const lineX = 176;
+  const lastY = firstY + Math.max(0, items.length - 1) * step;
+  s += `<line x1="${lineX}" y1="${firstY - 10}" x2="${lineX}" y2="${lastY + 10}" `
+    + `stroke="url(#mile-spine)" stroke-width="3" stroke-linecap="round"/>`;
   items.forEach((m, i) => {
-    const y = firstY + i * 56;
-    s += txt(128, y + 5, m.date, { font: 'mono', size: 13, fill: t.amber, anchor: 'end' });
-    s += `<circle cx="${lineX}" cy="${y}" r="7" fill="${t.bg}" stroke="${t.violet}" stroke-width="3"/>`;
-    s += txt(178, y, m.title, { size: 19, weight: 700, fill: t.text });
-    s += txt(178, y + 22, m.detail, { size: 15, fill: t.muted });
+    const y = firstY + i * step;
+    s += txt(148, y + 5, m.date, { font: 'mono', size: 13, fill: t.cyanText, anchor: 'end', ls: 0.5 });
+    const r = i % 2 === 0 ? 9 : 5.5;
+    s += `<circle cx="${lineX}" cy="${y}" r="${r}" fill="${t.canvas}" `
+      + `stroke="${i % 2 === 0 ? t.violet : t.cyan}" stroke-width="3"/>`;
+    s += txt(210, y - 2, m.title, { font: 'display', size: 21, fill: t.ink, weight: 600 });
+    s += txt(210, y + 22, m.detail, { font: 'body', size: 14, fill: t.muted });
   });
   return svgRoot(w, h, 'Milestones — timeline', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* PROJECT CARDS (580 x 270)                                                   */
+/* PROJECT CARDS (580 x 290) — ghost index, sheen, serif name, tags, metric    */
 /* -------------------------------------------------------------------------- */
 function buildProject(t, p, i) {
-  const w = 580;
-  const h = 270;
-  const accent = [t.cyan, t.violet, t.amber, t.cyan][i % 4];
-  let s = backdrop(t, w, h, { id: `proj${i}` });
+  const w = 580, h = 290;
+  const idx = String(i + 1).padStart(2, '0');
+  const id = `proj${i + 1}`;
+  const accent = [t.cyan, t.violet, t.cyan, t.violet][i % 4];
+
+  let d = defs(
+    grad(`${id}-sheen`, 0, 0, 1, 1, [
+      { o: '0%', c: t.violet, a: 0.30 },
+      { o: '55%', c: t.cyan, a: 0.10 },
+      { o: '100%', c: t.cyan, a: 0 },
+    ]),
+    grad(`${id}-rule`, 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
   s += panel(6, 6, w - 12, h - 12, t, { r: 16 });
-  s += `<rect x="6" y="20" width="4" height="${h - 40}" rx="2" fill="${accent}" opacity="0.8"/>`;
-
-  s += txt(28, 34, `${String(i + 1).padStart(2, '0')} / PROJECT`, {
-    font: 'mono', size: 12, fill: t.accentText, ls: 1.6,
+  // Diagonal gradient sheen in one corner.
+  s += `<path d="M${w - 6} 6 L${w - 6} 168 L${w - 168} 6 Z" fill="url(#${id}-sheen)"/>`;
+  // Large ghost index number.
+  s += txt(w - 26, h - 18, idx, {
+    font: 'display', size: 150, fill: 'none', stroke: t.violet,
+    sw: 2, opacity: 0.10, anchor: 'end', ls: -6,
   });
-  s += txt(548, 36, '↗', { size: 26, fill: accent, anchor: 'end' });
-  s += txt(28, 84, p.name, { size: 36, weight: 800, fill: t.text, ls: 0.5 });
 
-  let y = 118;
-  for (const ln of wrap(p.desc, 58, 3)) { s += txt(28, y, ln, { size: 16, fill: t.muted }); y += 24; }
+  s += txt(28, 38, `PROJECT  ${idx}`, { font: 'mono', size: 11, fill: t.cyanText, ls: 1.8 });
+  s += txt(28, 88, p.name, { font: 'display', size: 30, fill: t.ink, ls: 0.2 });
 
-  s += rule(28, 214, 552, t, { color: accent, w: 1, opacity: 0.35 });
-  let cx = 28;
-  for (const tag of p.tags) {
-    const c = chip(cx, 226, tag, t, { color: accent, size: 12, h: 26 });
-    s += c.svg;
-    cx += c.w + 8;
+  let y = 120;
+  for (const ln of wrap(p.desc, 46, 4)) {
+    s += txt(28, y, ln, { font: 'body', size: 14, fill: t.muted });
+    y += 21;
   }
-  s += txt(28, 258, `◆ ${p.metric}`, { font: 'mono', size: 13, fill: t.amber, ls: 0.5 });
+
+  s += rule(28, 214, 200, t, { grad: `${id}-rule`, w: 2 });
+  let cx = 28;
+  for (const tag of p.tags.slice(0, 4)) {
+    const c = chip(cx, 226, tag, t, { color: accent, size: 11, h: 24 });
+    s += c.svg;
+    cx += c.w + 7;
+  }
+  s += `<path d="M30 268 l5 -5 l5 5 l-5 5 Z" fill="${t.lime}"/>`;
+  s += txt(48, 272, p.metric, { font: 'mono', size: 13, fill: t.cyanText, ls: 0.5 });
   return svgRoot(w, h, `${p.name} — ${p.metric}`, s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* LIVE: GITHUB (1200 x 300)                                                   */
+/* LIVE: GITHUB (1200 x 320) — 4 radial gauges                                */
 /* -------------------------------------------------------------------------- */
 function buildLiveGithub(t) {
-  const w = 1200;
-  const h = 300;
+  const w = 1200, h = 320;
   const g = stats.github;
   const items = [
-    { k: 'FOLLOWERS', v: g.followers, c: t.cyan },
-    { k: 'FOLLOWING', v: g.following, c: t.violet },
-    { k: 'REPOSITORIES', v: g.repos, c: t.amber },
-    { k: 'TOTAL STARS', v: g.stars, c: t.cyan },
-    { k: 'CONTRIBUTIONS', v: g.contributions, c: t.violet },
+    { k: 'FOLLOWERS', v: g.followers },
+    { k: 'REPOSITORIES', v: g.repos },
+    { k: 'TOTAL STARS', v: g.stars },
+    { k: 'CONTRIBUTIONS', v: g.contributions },
   ];
   const max = Math.max(1, ...items.map(i => i.v));
-  let s = backdrop(t, w, h, { id: 'livegh' });
-  s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// GITHUB — LIVE METRICS', t.cyan);
+  const r = 54, C = 2 * Math.PI * r;
 
-  const colW = (w - 80) / items.length;
+  let d = defs(
+    grad('gh-gauge', 0, 0, 1, 1, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    radial('gh-glow', [{ o: '0%', c: t.cyan, a: 0.16 }, { o: '100%', c: t.cyan, a: 0 }]),
+  );
+  let s = d + backdrop(t, w, h);
+  s += panel(8, 8, w - 16, h - 16, t);
+  s += txt(48, 52, 'GITHUB / LIVE METRICS', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
+
+  const centers = [195, 465, 735, 1005];
   items.forEach((it, i) => {
-    const x = 40 + i * colW;
-    s += txt(x, 160, String(it.v), { size: 50, weight: 800, fill: t.accentText });
-    s += txt(x, 190, it.k, { font: 'mono', size: 12, fill: t.muted, ls: 1.3 });
-    s += `<rect x="${x}" y="214" width="${colW - 44}" height="8" rx="4" fill="${t.grid}"/>`;
-    const fw = Math.max(6, Math.round((colW - 44) * (it.v / max)));
-    s += `<rect x="${x}" y="214" width="${fw}" height="8" rx="4" fill="${it.c}"/>`;
+    const cx = centers[i], cy = 158;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r + 16}" fill="url(#gh-glow)"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${t.border}" stroke-width="10"/>`;
+    const frac = it.v / max;
+    if (frac > 0) {
+      const len = Math.max(2, C * frac);
+      s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#gh-gauge)" `
+        + `stroke-width="10" stroke-linecap="round" `
+        + `stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" `
+        + `transform="rotate(-90 ${cx} ${cy})"/>`;
+    }
+    s += txt(cx, cy + 10, String(it.v), {
+      font: 'display', size: 38, fill: t.ink, anchor: 'middle',
+    });
+    s += txt(cx, cy + 34, it.k, {
+      font: 'mono', size: 11, fill: t.muted, anchor: 'middle', ls: 1.2,
+    });
   });
-  s += txt(40, 268, 'DATA: data/stats.json  ·  REFRESHED DAILY', {
-    font: 'mono', size: 11, fill: t.faint, ls: 1,
+
+  s += rule(48, 282, 1152, t, { grad: 'gh-foot', w: 1, opacity: 0 });
+  s += txt(48, 296, 'DATA: data/stats.json  ·  REFRESHED DAILY', {
+    font: 'mono', size: 11, fill: t.muted, ls: 1,
   });
   return svgRoot(w, h, 'GitHub live metrics', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* LIVE: LEETCODE (1200 x 300)                                                 */
+/* LIVE: LEETCODE (1200 x 320) — solved number + stacked ring + rank + streak   */
 /* -------------------------------------------------------------------------- */
 function buildLiveLeetcode(t) {
-  const w = 1200;
-  const h = 300;
+  const w = 1200, h = 320;
   const L = stats.leetcode;
-  let s = backdrop(t, w, h, { id: 'liveleet' });
+  const cx = 200, cy = 164, r = 92, C = 2 * Math.PI * r;
+
+  let d = defs(
+    grad('leet-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    radial('leet-wash', [{ o: '0%', c: t.violet, a: 0.20 }, { o: '100%', c: t.violet, a: 0 }]),
+  );
+  let s = d + backdrop(t, w, h);
   s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// LEETCODE — PROBLEM SOLVING', t.amber);
+  s += txt(48, 52, 'LEETCODE / PROBLEM SOLVING', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
 
-  // Solved breakdown ring.
-  const cx = 168;
-  const cy = 172;
-  const r = 80;
-  const circ = 2 * Math.PI * r;
-  s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${t.grid}" stroke-width="16"/>`;
-  if (L.solved > 0) {
-    const segs = [
-      { v: L.easy, c: t.cyan },
-      { v: L.medium, c: t.violet },
-      { v: L.hard, c: t.amber },
-    ];
-    let acc = 0;
-    for (const seg of segs) {
-      const len = circ * (seg.v / L.solved);
-      if (len <= 0) continue;
-      s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.c}" `
-        + `stroke-width="16" stroke-dasharray="${Math.max(0, len - 3).toFixed(1)} ${circ.toFixed(1)}" `
-        + `stroke-dashoffset="${(-acc).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"/>`;
-      acc += len;
-    }
+  s += `<circle cx="${cx}" cy="${cy}" r="${r + 26}" fill="url(#leet-wash)"/>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${t.border}" stroke-width="18"/>`;
+  const segs = [
+    { v: L.easy, c: t.cyan },
+    { v: L.medium, c: t.violet },
+    { v: L.hard, c: t.lime },
+  ];
+  const total = Math.max(1, L.solved);
+  let acc = 0;
+  for (const seg of segs) {
+    const len = C * (seg.v / total);
+    if (len <= 0) continue;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.c}" `
+      + `stroke-width="18" stroke-linecap="butt" `
+      + `stroke-dasharray="${Math.max(0, len - 3).toFixed(1)} ${C.toFixed(1)}" `
+      + `stroke-dashoffset="${(-acc).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    acc += len;
   }
-  s += txt(cx, cy + 6, String(L.solved), { size: 46, weight: 800, fill: t.text, anchor: 'middle' });
-  s += txt(cx, cy + 30, 'SOLVED', { font: 'mono', size: 11, fill: t.muted, anchor: 'middle', ls: 2 });
+  s += txt(cx, cy + 12, String(L.solved), {
+    font: 'display', size: 56, fill: t.ink, anchor: 'middle',
+  });
+  s += txt(cx, cy + 40, 'SOLVED', { font: 'mono', size: 11, fill: t.muted, anchor: 'middle', ls: 2 });
 
-  // Easy / Medium / Hard rows.
-  const rows = [
+  // Difficulty legend.
+  const legend = [
     { k: 'EASY', v: L.easy, c: t.cyan },
     { k: 'MEDIUM', v: L.medium, c: t.violet },
-    { k: 'HARD', v: L.hard, c: t.amber },
+    { k: 'HARD', v: L.hard, c: t.lime },
   ];
-  const rowMax = Math.max(1, L.easy, L.medium, L.hard);
-  rows.forEach((row, i) => {
-    const y = 122 + i * 50;
-    s += txt(300, y, row.k, { font: 'mono', size: 13, fill: t.accentText, ls: 1.5 });
-    s += txt(660, y + 2, String(row.v), { size: 24, weight: 700, fill: t.text, anchor: 'end' });
-    s += `<rect x="300" y="${y + 12}" width="360" height="7" rx="3.5" fill="${t.grid}"/>`;
-    s += `<rect x="300" y="${y + 12}" width="${Math.max(6, Math.round(360 * row.v / rowMax))}" `
-      + `height="7" rx="3.5" fill="${row.c}"/>`;
+  legend.forEach((row, i) => {
+    const y = 116 + i * 40;
+    s += `<circle cx="356" cy="${y - 4}" r="5" fill="${row.c}"/>`;
+    s += txt(372, y, row.k, { font: 'mono', size: 12, fill: t.muted, ls: 1.4 });
+    s += txt(520, y, String(row.v), { font: 'display', size: 22, fill: t.ink, anchor: 'end' });
   });
 
-  // Rank + streak boxes.
-  const boxes = [
-    { k: 'GLOBAL RANK', v: String(L.rank), x: 710, c: t.violet },
-    { k: 'DAY STREAK', v: String(L.streak), x: 950, c: t.amber },
+  // Divider.
+  s += `<line x1="580" y1="92" x2="580" y2="248" stroke="${t.border}" stroke-width="1"/>`;
+
+  // Rank + streak.
+  const stats2 = [
+    { k: 'GLOBAL RANK', v: String(L.rank), x: 640 },
+    { k: 'DAY STREAK', v: String(L.streak), x: 910 },
   ];
-  for (const b of boxes) {
-    s += `<rect x="${b.x}" y="110" width="220" height="118" rx="14" fill="${t.panel2}" `
-      + `stroke="${t.stroke}" stroke-width="1.2"/>`;
-    s += txt(b.x + 20, 140, b.k, { font: 'mono', size: 11, fill: t.muted, ls: 1.4 });
-    s += txt(b.x + 20, 192, b.v, { size: 40, weight: 800, fill: b.c });
-  }
-  s += txt(40, 268, 'DATA: data/stats.json  ·  EASY / MEDIUM / HARD BREAKDOWN', {
-    font: 'mono', size: 11, fill: t.faint, ls: 1,
+  stats2.forEach((b) => {
+    s += txt(b.x, 136, b.k, { font: 'mono', size: 12, fill: t.cyanText, ls: 1.6 });
+    s += txt(b.x, 202, b.v, { font: 'display', size: 52, fill: t.ink });
+  });
+  s += rule(48, 284, 1152, t, { grad: 'leet-rule', w: 1, opacity: 0 });
+  s += txt(48, 298, 'DATA: data/stats.json  ·  EASY / MEDIUM / HARD BREAKDOWN', {
+    font: 'mono', size: 11, fill: t.muted, ls: 1,
   });
   return svgRoot(w, h, 'LeetCode live metrics', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* LIVE: ACTIVITY (1200 x 310)                                                 */
+/* LIVE: ACTIVITY (1200 x 320) — dated rows with gradient ticks               */
 /* -------------------------------------------------------------------------- */
 function buildLiveActivity(t) {
-  const w = 1200;
-  const items = profile.activity;
-  const h = Math.max(310, 130 + items.length * 36);
-  let s = backdrop(t, w, h, { id: 'liveact' });
-  s += panel(8, 8, w - 16, h - 16, t);
-  s += sectionTitle(t, '// ACTIVITY — RECENT LOG', t.cyan);
+  const w = 1200, h = 320;
+  const items = profile.activity.slice(0, 6);
 
-  const firstY = 96;
-  s += `<line x1="136" y1="${firstY}" x2="136" y2="${firstY + (items.length - 1) * 36}" `
-    + `stroke="${t.cyan}" stroke-width="2" opacity="0.4"/>`;
+  let d = defs(
+    grad('act-tick', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+    grad('act-rule', 0, 0, 1, 0, [{ o: '0%', c: t.violet }, { o: '100%', c: t.cyan }]),
+  );
+  let s = d + backdrop(t, w, h);
+  s += panel(8, 8, w - 16, h - 16, t);
+  s += txt(48, 50, 'RECENT ACTIVITY', { font: 'mono', size: 12, fill: t.muted, ls: 2 });
+
+  const firstY = 92, step = 34;
   items.forEach((a, i) => {
-    const y = firstY + i * 36;
-    s += txt(124, y + 5, a.date, { font: 'mono', size: 12, fill: t.amber, anchor: 'end' });
-    s += `<circle cx="136" cy="${y}" r="5" fill="${t.bg}" stroke="${t.cyan}" stroke-width="2.5"/>`;
-    s += `<text x="160" y="${y + 5}" fill="${t.text}" font-family="${FONT_H}" font-size="17">${clean(a.text)}</text>`;
+    const y = firstY + i * step;
+    s += txt(164, y + 5, a.date, { font: 'mono', size: 12, fill: t.cyanText, anchor: 'end', ls: 1 });
+    s += `<rect x="184" y="${y - 2}" width="26" height="5" rx="2.5" fill="url(#act-tick)" `
+      + `opacity="${(0.95 - i * 0.09).toFixed(2)}"/>`;
+    s += txt(224, y + 5, a.text, { font: 'body', size: 16, fill: t.ink });
+    if (i < items.length - 1) {
+      s += `<line x1="164" y1="${y + 17}" x2="1152" y2="${y + 17}" stroke="${t.border}" stroke-width="1" opacity="0.6"/>`;
+    }
   });
+  s += rule(48, 298, 1152, t, { grad: 'act-rule', w: 1, opacity: 0 });
   return svgRoot(w, h, 'Recent activity log', s);
 }
 
 /* -------------------------------------------------------------------------- */
-/* TIC-TAC-TOE TILES (88 x 88)                                                 */
+/* GENERATE ALL ASSETS                                                        */
 /* -------------------------------------------------------------------------- */
-function buildTile(t, kind) {
-  const w = 88;
-  const h = 88;
-  const isWin = kind === 'x-win' || kind === 'o-win';
-  const winColor = kind === 'x-win' ? t.cyan : t.violet;
-  let s = `<rect x="1" y="1" width="86" height="86" rx="12" fill="${t.panel}" `
-    + `stroke="${isWin ? winColor : t.stroke}" stroke-width="${isWin ? 2.5 : 1.5}" `
-    + `stroke-opacity="${isWin ? 0.9 : 1}"/>`;
 
-  if (isWin) {
-    s += `<circle cx="44" cy="44" r="33" fill="none" stroke="${winColor}" stroke-width="2" `
-      + `opacity="0.35"/>`;
-    s += `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%">`
-      + `<feGaussianBlur stdDeviation="3" result="b"/>`
-      + `<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>`
-      + `</filter></defs>`;
+// Remove legacy v1 artifacts so a re-run never leaves stale files behind.
+fs.rmSync(path.join(ASSETS, 'ttt'), { recursive: true, force: true });
+if (fs.existsSync(ASSETS)) {
+  for (const f of fs.readdirSync(ASSETS)) {
+    if (/^header-play-.*\.svg$/.test(f)) fs.rmSync(path.join(ASSETS, f), { force: true });
   }
-
-  if (kind === 'empty') {
-    s += `<rect x="15" y="15" width="58" height="58" rx="8" fill="none" `
-      + `stroke="${t.stroke}" stroke-width="1.5" stroke-dasharray="6 6"/>`;
-    s += `<circle cx="44" cy="44" r="3" fill="${t.faint}" opacity="0.5"/>`;
-  }
-
-  const filter = isWin ? ' filter="url(#glow)"' : '';
-  if (kind === 'x' || kind === 'x-win') {
-    s += `<g stroke="${t.cyan}" stroke-width="9" stroke-linecap="round"${filter}>`
-      + `<line x1="27" y1="27" x2="61" y2="61"/><line x1="61" y1="27" x2="27" y2="61"/>`
-      + `</g>`;
-  }
-  if (kind === 'o' || kind === 'o-win') {
-    s += `<circle cx="44" cy="44" r="18" fill="none" stroke="${t.violet}" `
-      + `stroke-width="9"${filter}/>`;
-  }
-  return svgRoot(w, h, `tic-tac-toe ${kind} tile`, s);
 }
 
-/* -------------------------------------------------------------------------- */
-/* GENERATE ALL ASSETS                                                         */
-/* -------------------------------------------------------------------------- */
 const socialByKey = Object.fromEntries(profile.socials.map(s => [s.key, s]));
 
 for (const mode of ['light', 'dark']) {
@@ -735,7 +749,9 @@ for (const mode of ['light', 'dark']) {
   HEADERS.forEach((cfg, i) => write(`header-${cfg.key}${V}`, buildHeader(t, cfg, i)));
 
   for (const key of BUTTON_ORDER) {
-    write(`button-${key}${V}`, buildButton(t, socialByKey[key] || { key, label: key[0].toUpperCase() + key.slice(1) }));
+    const soc = socialByKey[key];
+    const label = soc ? soc.label : key.charAt(0).toUpperCase() + key.slice(1);
+    write(`button-${key}${V}`, buildButton(t, key, label));
   }
 
   write(`card-about${V}`, buildCardAbout(t));
@@ -743,15 +759,19 @@ for (const mode of ['light', 'dark']) {
   write(`card-toolbox${V}`, buildCardToolbox(t));
   write(`card-milestones${V}`, buildCardMilestones(t));
 
-  profile.projects.slice(0, 4).forEach((p, i) => write(`project-${i + 1}${V}`, buildProject(t, p, i)));
+  for (let i = 0; i < 4; i++) {
+    const fallback = {
+      name: `Project ${i + 1}`,
+      desc: 'Project description coming soon.',
+      tags: ['Code'],
+      metric: '—',
+    };
+    write(`project-${i + 1}${V}`, buildProject(t, profile.projects[i] || fallback, i));
+  }
 
   write(`live-github${V}`, buildLiveGithub(t));
   write(`live-leetcode${V}`, buildLiveLeetcode(t));
   write(`live-activity${V}`, buildLiveActivity(t));
-
-  for (const kind of ['empty', 'x', 'o', 'x-win', 'o-win']) {
-    write(`ttt/${kind}${V}`, buildTile(t, kind));
-  }
 }
 
-console.log(`ORBIT assets: generated ${written} SVG files in ${ASSETS}`);
+console.log(`AETHER assets: generated ${written} SVG files in ${ASSETS}`);
