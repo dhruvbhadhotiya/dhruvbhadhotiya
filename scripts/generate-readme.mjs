@@ -87,7 +87,7 @@ const nowAlt = [now.building && `Building: ${now.building}`, now.learning && `Le
   .join(' · ');
 add(picture('card-now', nowAlt), '', '<br>', '');
 
-// 03 — Work: project cards in a 2x2 grid.
+// 03 — Work: project cards in a responsive 2-column grid, each linked to its own repo.
 add(picture('header-work', '03 · Selected work'), '');
 add('<p align="center">');
 const projects = profile.projects ?? [];
