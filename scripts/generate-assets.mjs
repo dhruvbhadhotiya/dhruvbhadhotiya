@@ -362,7 +362,7 @@ function defs(...chunks) {
 
 // Full-bleed canvas background + optional hex plating / overlay wash.
 function backdrop(t, w, h, o = {}) {
-  let s = `<rect width="${w}" height="${h}" fill="${o.fill || t.canvas}"/>`;
+  let s = o.transparent ? '' : `<rect width="${w}" height="${h}" fill="${o.fill || t.canvas}"/>`;
   if (o.hex) s += `<rect width="${w}" height="${h}" fill="url(#${o.hex})" opacity="${o.hexOpacity ?? 0.06}"/>`;
   if (o.overlay) s += `<rect width="${w}" height="${h}" fill="url(#${o.overlay})" opacity="${o.overlayOpacity ?? 1}"/>`;
   return s;
@@ -437,7 +437,7 @@ function buildHero(t) {
   // Derive the hero's circuit trace once so the animated dot follows the same path.
   const traceOpts = { color: t.borderStrong, len: 200, rise: 12, opacity: 0.55 };
   const tracePath = circuitPath(64, 414, traceOpts).path;
-  let s = d + heroStyle(tracePath) + backdrop(t, w, h, { fill: t.canvasDeep, hex: 'hero-hex', hexOpacity: 0.09 });
+  let s = d + heroStyle(tracePath) + backdrop(t, w, h, { transparent: true, hex: 'hero-hex', hexOpacity: 0.09 });
   // Anisotropic red armor field on the right, behind the reactor.
   s += `<rect x="724" y="0" width="${w - 724}" height="${h}" fill="url(#hero-field)"/>`;
   s += `<rect x="724" y="0" width="${w - 724}" height="${h}" fill="url(#hero-hex)" opacity="0.12"/>`;
