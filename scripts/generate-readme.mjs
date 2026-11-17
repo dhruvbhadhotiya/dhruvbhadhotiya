@@ -47,12 +47,6 @@ const picture = (name, alt, width = '100%') => {
 /** Look up a social URL by key (github, linkedin, leetcode, email, ...). */
 const socialUrl = (key) => profile.socials?.find((s) => s.key === key)?.url;
 
-/** Extract an 11-char YouTube video id from youtu.be / youtube.com URLs. */
-function youtubeId(url = '') {
-  const m = String(url).match(/(?:youtu\.be\/|(?:youtube\.com\/)?(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
-
 const L = [];
 const add = (...lines) => L.push(...lines);
 
@@ -74,14 +68,9 @@ const count = profile.socials?.length || 1;
 const buttonWidth = `${Math.max(10, Math.floor(100 / count) - 1)}%`;
 add('<div align="center">', '');
 add(picture('hero', `${hero.name} — ${hero.role}`), '');
-// Optional featured video. A YouTube URL shows its real thumbnail as a clickable
-// poster (the only way to make a video visible on GitHub); other URLs get the button.
+// Optional featured video: a themed button linking to a GitHub-uploaded asset URL
+// (github.com/user-attachments/assets/...) or any video URL. Empty videoUrl = no button.
 if (hero.videoUrl) {
-  const vid = youtubeId(hero.videoUrl);
-  if (vid) {
-    const thumb = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
-    add(`<a href="${esc(hero.videoUrl)}"><img src="${esc(thumb)}" width="72%" alt="Watch the build — video preview"></a>`, '');
-  }
   add(`<a href="${esc(hero.videoUrl)}">${picture('button-video', hero.videoLabel || 'WATCH THE BUILD', '200')}</a>`, '');
 }
 for (const s of profile.socials ?? []) {

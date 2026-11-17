@@ -9,10 +9,6 @@
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/hero-dark.svg"><img src="assets/hero-light.svg" width="100%" alt="DHRUV BHADHOTIYA — Student &amp; ML Researcher · CS Engineer"></picture>
 
-<a href="https://youtu.be/sYOYFywcMJg?si=AJXqaT29g3CHWg1Y"><img src="https://img.youtube.com/vi/sYOYFywcMJg/hqdefault.jpg" width="72%" alt="Watch the build — video preview"></a>
-
-<a href="https://youtu.be/sYOYFywcMJg?si=AJXqaT29g3CHWg1Y"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/button-video-dark.svg"><img src="assets/button-video-light.svg" width="200" alt="WATCH THE BUILD"></picture></a>
-
 <a href="https://github.com/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/button-github-dark.svg"><img src="assets/button-github-light.svg" width="24%" alt="GitHub"></picture></a>
 <a href="https://linkedin.com/in/dhruv-bhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/button-linkedin-dark.svg"><img src="assets/button-linkedin-light.svg" width="24%" alt="LinkedIn"></picture></a>
 <a href="https://leetcode.com/u/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/button-leetcode-dark.svg"><img src="assets/button-leetcode-light.svg" width="24%" alt="LeetCode"></picture></a>
