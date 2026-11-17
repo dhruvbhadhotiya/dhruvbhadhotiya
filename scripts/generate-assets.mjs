@@ -16,8 +16,8 @@
  *
  * OUTPUTS (idempotent; safe to re-run)
  *   assets/<base>-light.svg and assets/<base>-dark.svg for every base in the
- *   manifest below: hero, footer, 9 headers, 6 buttons, 4 info cards,
- *   8 project cards, 3 live stat cards  =>  32 bases x 2 = 64 SVGs.
+ *   manifest below: hero, footer, 9 headers, 7 buttons (6 social + video),
+ *   4 info cards, 8 project cards, 3 live stat cards => 33 bases x 2 = 66 SVGs.
  *   Legacy tic-tac-toe tiles (assets/ttt/), header-play-*.svg, and any
  *   project cards beyond project-8 are removed so a re-run leaves no stale files.
  *
@@ -58,7 +58,7 @@ function theme(mode) {
   return {
     canvas: '#FFFFFF', canvasDeep: '#F0EBE6', surface: '#FBF7F3', raised: '#F3EBE4',
     border: '#B09B8F', borderStrong: '#9A8578', ink: '#2A1E1A', muted: '#6E5A50',
-    red: '#C0392B', redText: '#A61B12',
+    red: '#C0392B', redDeep: '#96281B', redText: '#A61B12',
     gold: '#B8860B', goldText: '#7A5800',
     arcGlow: '#0E7490', signal: '#0E7490',
   };
@@ -225,10 +225,10 @@ function hexPattern(id, t, o = {}) {
 }
 
 // Circuit trace: orthogonal path with 45° elbows + node dots on an 8px grid.
-function circuitTrace(x, y, t, o = {}) {
+// Path data for an orthogonal circuit trace. Shared with the hero "energy dot"
+// so its motion path uses the EXACT same geometry as the drawn trace.
+function circuitPath(x, y, o = {}) {
   const snap = v => Math.round(v / 8) * 8;
-  const color = o.color || t.border;
-  const op = o.opacity ?? 0.8;
   const L = o.len ?? 144;
   const k = o.rise ?? 16;
   const dir = o.dir ?? 1;
@@ -241,6 +241,13 @@ function circuitTrace(x, y, t, o = {}) {
   const dy = snap(by + k);
   const e = snap(d + dir * L * 0.26);
   const path = `M${x} ${sy} L${a} ${sy} L${b} ${by} L${c} ${by} L${d} ${dy} L${e} ${dy}`;
+  return { path, sy, b, by, d, dy, e };
+}
+
+function circuitTrace(x, y, t, o = {}) {
+  const color = o.color || t.border;
+  const op = o.opacity ?? 0.8;
+  const { path, sy, b, by, d, dy, e } = circuitPath(x, y, o);
   let s = `<path d="${path}" fill="none" stroke="${color}" stroke-width="${o.sw ?? 1}" `
     + `opacity="${op}" stroke-linecap="round" stroke-linejoin="round"/>`;
   for (const [nx, ny] of [[x, sy], [b, by], [d, dy], [e, dy]]) {
@@ -296,9 +303,12 @@ function arcReactor(cx, cy, r, t, o = {}) {
   }).join(' ');
   s += `<polygon points="${pts}" fill="${t.canvasDeep}" stroke="${t.arcGlow}" `
     + `stroke-width="1.6" opacity="${op}"/>`;
-  if (core) s += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.18).toFixed(1)}" fill="url(#${core})" opacity="${op}"/>`;
-  s += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.10).toFixed(1)}" fill="${t.arcGlow}" opacity="${(op * 0.9).toFixed(2)}"/>`;
-  s += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.04).toFixed(1)}" fill="#FFFFFF" opacity="${op}"/>`;
+  let coreS = '';
+  if (core) coreS += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.18).toFixed(1)}" fill="url(#${core})" opacity="${op}"/>`;
+  coreS += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.10).toFixed(1)}" fill="${t.arcGlow}" opacity="${(op * 0.9).toFixed(2)}"/>`;
+  coreS += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.04).toFixed(1)}" fill="#FFFFFF" opacity="${op}"/>`;
+  // o.breath lets the hero animate ONLY the bright core (the single light source).
+  s += o.breath ? `<g class="${o.breath}">${coreS}</g>` : coreS;
   return s;
 }
 
@@ -309,9 +319,10 @@ function eyeSlits(x, y, t, o = {}) {
   const left = `${x},${y + 5} ${x + w},${y} ${x + w - 4},${y + 4} ${x + 3},${y + 8}`;
   const rx = x + w + gap;
   const right = `${rx},${y} ${rx + w},${y + 5} ${rx + w - 3},${y + 8} ${rx + 4},${y + 4}`;
-  return `<polygon points="${left}" fill="${c}" opacity="${op}"/>`
+  const s = `<polygon points="${left}" fill="${c}" opacity="${op}"/>`
     + `<polygon points="${right}" fill="${c}" opacity="${op}"/>`
     + `<polygon points="${left}" fill="none" stroke="${t.arcGlow}" stroke-width="0.6" opacity="0.55"/>`;
+  return o.cls ? `<g class="${o.cls}">${s}</g>` : s;
 }
 
 // Repulsor glow: small cyan radial disc with a 1px bright core.
@@ -368,6 +379,32 @@ function write(name, svg) {
 /* -------------------------------------------------------------------------- */
 /* HERO (1200 x 470) — eye-slit eyebrow, 2-line name, reactor, hex, no coords   */
 /* -------------------------------------------------------------------------- */
+
+// Declarative, self-contained animation for the hero. It lives entirely in an
+// internal <style> block (CSS @keyframes + a CSS motion path), so it animates
+// when the SVG is loaded via <img> — no JS. ALL animation is gated behind
+// prefers-reduced-motion: no-preference, with an explicit reduce kill-switch,
+// so users who disable motion get a completely static hero.
+function heroStyle(tracePath) {
+  return `<style>`
+    + `@media (prefers-reduced-motion: reduce){*{animation:none!important}}`
+    + `@media (prefers-reduced-motion: no-preference){`
+      // Reactor: slow breathing pulse on the bright core only.
+      + `.reactor-breath{transform-box:view-box;transform-origin:948px 220px;animation:reactorBreath 3.6s ease-in-out infinite}`
+      + `@keyframes reactorBreath{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}`
+      // Circuit: an arcGlow energy dot riding the exact drawn trace path (~4s loop).
+      + `.energy-dot{transform-box:view-box;transform-origin:0 0;offset-path:path('${tracePath}');animation:energyRun 4s linear infinite}`
+      + `@keyframes energyRun{0%{offset-distance:0%;opacity:0}8%{opacity:.9}92%{opacity:.9}100%{offset-distance:100%;opacity:0}}`
+      // HUD: a faint horizontal sweep crossing only the clipped red panel (~5s).
+      + `.hud-scan{animation:hudSweep 5s linear infinite}`
+      + `@keyframes hudSweep{0%{transform:translateY(-12px)}100%{transform:translateY(470px)}}`
+      // Eyes: restrained, intermittent slit flicker (~2.6s).
+      + `.eye-flicker{animation:eyeFlicker 2.6s linear infinite}`
+      + `@keyframes eyeFlicker{0%,88%,91%,100%{opacity:.95}89%{opacity:.32}90%{opacity:.92}95%{opacity:.45}96%{opacity:.95}}`
+    + `}`
+    + `</style>`;
+}
+
 function buildHero(t) {
   const w = 1200, h = 470;
   const H = profile.hero;
@@ -388,19 +425,32 @@ function buildHero(t) {
     ]),
     blur('hero-blur', 24),
     grad('hero-rule', 0, 0, 1, 0, [{ o: '0%', c: t.gold }, { o: '100%', c: t.arcGlow }]),
+    grad('hero-scan', 0, 0, 1, 0, [
+      { o: '0%', c: t.arcGlow, a: 0 },
+      { o: '50%', c: t.arcGlow, a: 1 },
+      { o: '100%', c: t.arcGlow, a: 0 },
+    ]),
+    `<clipPath id="hero-panel-clip"><rect x="724" y="0" width="${w - 724}" height="${h}"/></clipPath>`,
     hexPattern('hero-hex', t, { r: 26, color: t.border, sw: 1 }),
   );
 
-  let s = d + backdrop(t, w, h, { fill: t.canvasDeep, hex: 'hero-hex', hexOpacity: 0.09 });
+  // Derive the hero's circuit trace once so the animated dot follows the same path.
+  const traceOpts = { color: t.borderStrong, len: 200, rise: 12, opacity: 0.55 };
+  const tracePath = circuitPath(64, 414, traceOpts).path;
+  let s = d + heroStyle(tracePath) + backdrop(t, w, h, { fill: t.canvasDeep, hex: 'hero-hex', hexOpacity: 0.09 });
   // Anisotropic red armor field on the right, behind the reactor.
   s += `<rect x="724" y="0" width="${w - 724}" height="${h}" fill="url(#hero-field)"/>`;
   s += `<rect x="724" y="0" width="${w - 724}" height="${h}" fill="url(#hero-hex)" opacity="0.12"/>`;
   // Diagonal suit seam between neutral field and armor field.
   s += `<path d="M724 0 L668 470" fill="none" stroke="${t.borderStrong}" stroke-width="1.5" opacity="0.8"/>`;
   s += `<path d="M724 0 L668 470" fill="none" stroke="${t.gold}" stroke-width="0.6" opacity="0.5"/>`;
+  // HUD scan: a faint sweep line crossing only the red armor panel (clipped, <=0.10).
+  s += `<g clip-path="url(#hero-panel-clip)">`
+    + `<rect class="hud-scan" x="724" y="0" width="${w - 724}" height="2" fill="url(#hero-scan)" opacity="0.10"/>`
+    + `</g>`;
 
   // Eye-slit eyebrow + mono kicker.
-  s += eyeSlits(64, 56, t, { w: 28, gap: 12 });
+  s += eyeSlits(64, 56, t, { w: 28, gap: 12, cls: 'eye-flicker' });
   s += txt(152, 66, 'ARC REACTOR  /  ONLINE', { font: 'mono', size: 12, fill: t.goldText, ls: 2 });
 
   // Two-line name.
@@ -414,8 +464,12 @@ function buildHero(t) {
     s += txt(64, 370 + i * 26, ln, { font: 'body', size: 18, fill: t.muted });
   });
 
-  // Circuit trace under the hero header area (motif).
-  s += circuitTrace(64, 414, t, { color: t.borderStrong, len: 200, rise: 12, opacity: 0.55 });
+  // Circuit trace under the hero header area (motif) + travelling energy dot.
+  s += circuitTrace(64, 414, t, traceOpts);
+  s += `<g class="energy-dot">`
+    + `<circle cx="0" cy="0" r="3.6" fill="${t.arcGlow}" opacity="0.9"/>`
+    + `<circle cx="0" cy="0" r="1.4" fill="#FFFFFF"/>`
+    + `</g>`;
 
   // Bottom mono tick + status pill. Coordinates/location line intentionally absent.
   s += txt(64, 452, 'SYS.01  /  BUILD 2026', { font: 'mono', size: 12, fill: t.muted, ls: 1.4 });
@@ -430,7 +484,7 @@ function buildHero(t) {
 
   // HUD brackets + arc-reactor centerpiece on the armor field.
   s += bracket(736, 40, 424, 356, t, { len: 18, color: t.gold, opacity: 0.7 });
-  s += arcReactor(948, 220, 104, t, { glow: 'hero-glow', core: 'hero-core', ring: t.gold, opacity: 1 });
+  s += arcReactor(948, 220, 104, t, { glow: 'hero-glow', core: 'hero-core', ring: t.gold, opacity: 1, breath: 'reactor-breath' });
   s += txt(948, 372, 'POWERED', { font: 'mono', size: 12, fill: t.arcGlow, anchor: 'middle', ls: 3 });
   s += txt(948, 392, 'MARK 01', { font: 'mono', size: 11, fill: t.goldText, anchor: 'middle', ls: 2 });
   return svgRoot(w, h, `${H.name} — ${H.role}`, s);
@@ -514,6 +568,7 @@ function buildHeader(t, cfg, index) {
 /* -------------------------------------------------------------------------- */
 /* BUTTONS (200 x 56) — armor pill, red sheen cap, one repulsor bloom (email)   */
 /* -------------------------------------------------------------------------- */
+// The 6 social buttons are kept unchanged; the video CTA is a separate builder.
 const BUTTON_ORDER = ['github', 'linkedin', 'youtube', 'leetcode', 'x', 'email'];
 
 function buildButton(t, key, label, index) {
@@ -541,6 +596,26 @@ function buildButton(t, key, label, index) {
   s += txt(46, 35, label, { font: 'body', size: 16, fill: t.ink, weight: 600 });
   s += txt(176, 35, '↗', { font: 'body', size: 16, fill: t.goldText, anchor: 'end' });
   return svgRoot(w, h, `${label} link`, s);
+}
+
+// Reusable video CTA: same pill / red sheen cap / HUD brackets family, but the
+// signal dot is replaced by a small gold play triangle and a "WATCH THE BUILD"
+// label. Uses the same palette + helpers; adds no new glow or accent colour.
+function buildVideoButton(t) {
+  const w = 200, h = 56;
+  const id = 'btn-video';
+  const d = defs(
+    redSheen(`${id}-cap`, t, 125),
+  );
+  let s = d + `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="9" `
+    + `fill="${t.raised}" stroke="${t.borderStrong}" stroke-width="1.25"/>`;
+  s += `<path d="M10 2 H${w - 10} Q${w - 2} 2 ${w - 2} 10 V12 H2 V10 Q2 2 10 2 Z" fill="url(#${id}-cap)"/>`;
+  s += bracket(6, 6, w - 12, h - 12, t, { len: 8, color: t.gold, opacity: 0.5, sw: 1 });
+  // Small gold play triangle inside a thin ring (replaces the social signal dot).
+  s += `<circle cx="26" cy="30" r="11" fill="none" stroke="${t.gold}" stroke-width="1" opacity="0.5"/>`;
+  s += `<path d="M23 24 L35 30 L23 36 Z" fill="${t.gold}"/>`;
+  s += txt(48, 35, 'WATCH THE BUILD', { font: 'body', size: 13.5, fill: t.ink, weight: 600, ls: 0.2 });
+  return svgRoot(w, h, 'Watch the build — video', s);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1021,6 +1096,8 @@ for (const mode of ['light', 'dark']) {
     const label = soc ? soc.label : key.charAt(0).toUpperCase() + key.slice(1);
     write(`button-${key}${V}`, buildButton(t, key, label, i));
   });
+  // 7th button: reusable video CTA (keeps the 6 social buttons untouched).
+  write(`button-video${V}`, buildVideoButton(t));
 
   write(`card-about${V}`, buildCardAbout(t));
   write(`card-now${V}`, buildCardNow(t));

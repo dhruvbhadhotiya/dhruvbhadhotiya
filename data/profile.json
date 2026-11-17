@@ -5,7 +5,9 @@
     "name": "DHRUV BHADHOTIYA",
     "role": "Student & ML Researcher · CS Engineer",
     "tagline": "Building intelligent systems that actually work in the real world.",
-    "status": "OPEN TO RESEARCH & COLLABORATIONS"
+    "status": "OPEN TO RESEARCH & COLLABORATIONS",
+    "videoUrl": "",
+    "videoLabel": "WATCH THE BUILD"
   },
   "socials": [
     { "key": "github", "label": "GitHub", "url": "https://github.com/dhruvbhadhotiya" },

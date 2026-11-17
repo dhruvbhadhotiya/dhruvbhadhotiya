@@ -68,6 +68,11 @@ const count = profile.socials?.length || 1;
 const buttonWidth = `${Math.max(10, Math.floor(100 / count) - 1)}%`;
 add('<div align="center">', '');
 add(picture('hero', `${hero.name} — ${hero.role}`), '');
+// Optional featured video: a themed button linking to a GitHub-uploaded asset URL
+// (github.com/user-attachments/assets/...) or any video URL. Empty videoUrl = no button.
+if (hero.videoUrl) {
+  add(`<a href="${esc(hero.videoUrl)}">${picture('button-video', hero.videoLabel || 'WATCH THE BUILD', '200')}</a>`, '');
+}
 for (const s of profile.socials ?? []) {
   add(`<a href="${esc(s.url)}">${picture(`button-${s.key}`, s.label, buttonWidth)}</a>`);
 }
