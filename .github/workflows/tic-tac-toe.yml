@@ -1,0 +1,69 @@
+name: Tic-tac-toe
+
+on:
+  issues:
+    types: [opened]
+
+# Least privilege: the action only needs to push the board and talk to issues.
+permissions:
+  contents: write
+  issues: write
+
+# Serialize moves so two games never race to overwrite data/ttt.json.
+concurrency:
+  group: tic-tac-toe
+  cancel-in-progress: false
+
+jobs:
+  move:
+    if: startsWith(github.event.issue.title, 'ttt|')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Issue fields are untrusted: pass them only through env, never inline
+      # into the shell command itself.
+      - name: Play the move and the AI's reply
+        run: node game/play.mjs
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          PLAYER: ${{ github.event.issue.user.login }}
+          REPLY_FILE: ${{ runner.temp }}/reply.md
+
+      - name: Commit the board
+        env:
+          PLAYER: ${{ github.event.issue.user.login }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md data/ttt.json
+          if git diff --cached --quiet; then
+            echo "No board changes to commit."
+            exit 0
+          fi
+          git commit -m "ttt: move by @${PLAYER}"
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              echo "Pushed on attempt ${i}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Failed to push after 3 attempts"
+          exit 1
+
+      - name: Reply and close the issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          if [ -f "$RUNNER_TEMP/reply.md" ]; then
+            gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/reply.md"
+          fi
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY"

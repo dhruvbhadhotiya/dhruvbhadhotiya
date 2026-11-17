@@ -1,0 +1,13 @@
+# Dependencies (this project intentionally has none, but keep tooling artifacts out)
+node_modules/
+npm-debug.log*
+
+# Local scratch / AI tooling
+.DS_Store
+Thumbs.db
+reply.md
+*.tmp
+
+# Editor folders
+.vscode/
+.idea/

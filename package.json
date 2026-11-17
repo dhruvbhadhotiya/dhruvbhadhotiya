@@ -1,0 +1,12 @@
+{
+  "name": "dhruv-profile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/generate-assets.mjs",
+    "stats": "node scripts/fetch-stats.mjs",
+    "readme": "node scripts/generate-readme.mjs",
+    "build": "npm run stats && npm run assets && npm run readme"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "repo": "dhruvbhadhotiya/dhruvbhadhotiya",
+  "user": "dhruvbhadhotiya",
+  "hero": {
+    "name": "DHRUV BHADHOTIYA",
+    "role": "Student & ML Researcher · CS Engineer",
+    "tagline": "Building intelligent systems that actually work in the real world.",
+    "status": "OPEN TO RESEARCH & COLLABORATIONS",
+    "coordinates": "AGRA, INDIA · 27.16° N / 78.01° E"
+  },
+  "socials": [
+    { "key": "github", "label": "GitHub", "url": "https://github.com/dhruvbhadhotiya" },
+    { "key": "linkedin", "label": "LinkedIn", "url": "https://linkedin.com/in/dhruv-bhadhotiya" },
+    { "key": "leetcode", "label": "LeetCode", "url": "https://leetcode.com/u/dhruvbhadhotiya" },
+    { "key": "email", "label": "Email", "url": "mailto:dhruvbhadhotiya@gmail.com" }
+  ],
+  "about": {
+    "lines": [
+      "I'm a B.Tech (Hons.) Computer Science student specializing in AI & Analytics, and an ML researcher at CSIR–Fourth Paradigm Institute.",
+      "I work at the intersection of machine learning and security — graph neural networks, anomaly detection, and systems for the real world.",
+      "I like turning research into working software, from OCR-to-LLM grading platforms to fully offline multimodal assistants."
+    ],
+    "facts": [
+      { "k": "STUDYING", "v": "B.Tech CS · AI & Analytics" },
+      { "k": "UNIVERSITY", "v": "GLA University, Mathura" },
+      { "k": "CGPA", "v": "8.28 / 10" },
+      { "k": "RESEARCH", "v": "CSIR-4PI, Bengaluru" }
+    ]
+  },
+  "now": {
+    "building": "E-GraphSAGE — a GNN-based network intrusion detection system at CSIR-4PI",
+    "learning": "distributed systems, graph ML, and writing papers that people actually read",
+    "listening": "lo-fi loops and the hum of a good GPU fan",
+    "note": "Preparing a paper for IEEE ANTS 2026 (IIT Roorkee). Open to research collaborations."
+  },
+  "projects": [
+    {
+      "name": "SmartEval-AI",
+      "desc": "OCR-to-LLM exam grading platform. Flask + JWT + RBAC backend, Celery/Redis async processing, LM Studio-hosted LLM. Cut manual evaluation effort by ~80%.",
+      "tags": ["React", "Flask", "MongoDB", "Celery"],
+      "metric": "~80% less effort",
+      "url": "https://github.com/dhruvbhadhotiya"
+    },
+    {
+      "name": "NOVA AI",
+      "desc": "Fully offline multimodal classroom assistant with text, voice and image inputs — local Phi-2 LLM, speech-to-text and BLIP captioning, optimized with OpenVINO.",
+      "tags": ["Python", "OpenVINO", "Phi-2", "BLIP"],
+      "metric": "100% offline",
+      "url": "https://github.com/dhruvbhadhotiya"
+    },
+    {
+      "name": "Multilingual Review Analysis",
+      "desc": "Multilingual sentiment analysis and topic modeling app. Integrated Ollama's gpt-oss:120b to generate insights and exportable dashboards from reviews across languages.",
+      "tags": ["Python", "Ollama", "NLP", "Dashboards"],
+      "metric": "gpt-oss:120b",
+      "url": "https://github.com/dhruvbhadhotiya"
+    },
+    {
+      "name": "E-GraphSAGE",
+      "desc": "GNN-based network intrusion detection (research at CSIR-4PI). Dual-specialist ensemble + focal loss on 2.5M-record UNSW-NB15 and CICIDS2018.",
+      "tags": ["PyTorch Geometric", "GNN", "XGBoost"],
+      "metric": "2.5M records",
+      "url": "https://github.com/dhruvbhadhotiya"
+    }
+  ],
+  "toolbox": [
+    { "group": "LANGUAGES", "items": ["Java", "Python", "JavaScript", "SQL"] },
+    { "group": "ML / DATA", "items": ["PyTorch", "PyTorch Geometric", "Scikit-learn", "Keras", "NumPy", "Pandas"] },
+    { "group": "FRAMEWORKS", "items": ["Flask", "Ollama", "OpenVINO", "MongoDB", "MySQL", "Redis"] },
+    { "group": "TOOLS", "items": ["Git", "Docker", "Celery", "React", "Claude Code", "OpenCode"] }
+  ],
+  "milestones": [
+    { "date": "2026", "title": "Research Intern @ CSIR-4PI", "detail": "E-GraphSAGE intrusion detection; paper at IEEE ANTS 2026, IIT Roorkee." },
+    { "date": "2025", "title": "Top 20 — Hack4Health", "detail": "IIIT Delhi hackathon, 400 teams (Smarter Preventive Care)." },
+    { "date": "2025", "title": "Top 10 — GLA Promptathon", "detail": "Generative AI hackathon, 100 teams." },
+    { "date": "2025", "title": "Intel Unnati — AI Mastery", "detail": "Intel & Edulateral Foundation certification." },
+    { "date": "2024", "title": "B.Tech CS — AI & Analytics", "detail": "GLA University, Mathura (2024–2028), CGPA 8.28/10." }
+  ],
+  "activity": [
+    { "date": "NOV 26", "text": "Preparing E-GraphSAGE paper for IEEE ANTS 2026" },
+    { "date": "NOV 16", "text": "Research at CSIR–Fourth Paradigm Institute, Bengaluru" },
+    { "date": "OCT 28", "text": "Shipped SmartEval-AI — OCR-to-LLM grading platform" },
+    { "date": "OCT 05", "text": "Built NOVA AI — fully offline multimodal assistant" },
+    { "date": "SEP 21", "text": "Multilingual Review Analysis with gpt-oss:120b" },
+    { "date": "AUG 30", "text": "Top 20 at Hack4Health, IIIT Delhi" }
+  ],
+  "footer": "Built with curiosity, caffeine and a generator script. Kanha Ji will manage everything.",
+  "profileViewsId": "dhruvbhadhotiya"
+}
