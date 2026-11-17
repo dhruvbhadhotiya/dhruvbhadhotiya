@@ -1,7 +1,30 @@
 {
-  "board": ["", "", "", "", "", "", "", "", ""],
+  "board": [
+    "",
+    "",
+    "",
+    "",
+    "O",
+    "",
+    "X",
+    "",
+    ""
+  ],
   "status": "playing",
-  "moves": [],
+  "moves": [
+    {
+      "player": "dhruvbhadhotiya",
+      "mark": "X",
+      "cell": 6,
+      "at": "2026-11-17T10:08:14.408Z"
+    },
+    {
+      "player": "minimax",
+      "mark": "O",
+      "cell": 4,
+      "at": "2026-11-17T10:08:14.408Z"
+    }
+  ],
   "record": {
     "human": 0,
     "ai": 0,
