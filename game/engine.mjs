@@ -25,8 +25,8 @@ const PROFILE_URL = 'https://github.com/dhruvbhadhotiya';
 
 // Pre-filled body for the "make a move" issue the board links to.
 const MOVE_BODY =
-  'Just press "Create". A GitHub Action plays the AI\'s reply and refreshes the ' +
-  'board on the profile within a minute.';
+  'Just click "Submit new issue" below. A GitHub Action plays the AI\'s reply and ' +
+  'refreshes the board on the profile within a minute. (Do not change the title.)';
 
 /** Create a fresh game state while carrying over the scoreboard and history. */
 export function newGame(record = { human: 0, ai: 0, draw: 0 }, recent = []) {
