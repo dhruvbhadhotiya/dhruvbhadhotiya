@@ -61,11 +61,11 @@
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/header-contributions-dark.svg"><img src="assets/header-contributions-light.svg" width="100%" alt="06 · GitHub contributions"></picture>
 
-<a href="https://github.com/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-github-dark.svg"><img src="assets/live-github-light.svg" width="100%" alt="GitHub — 7 followers, 32 repositories, 2 stars, 0 contributions"></picture></a>
+<a href="https://github.com/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-github-dark.svg"><img src="assets/live-github-light.svg" width="100%" alt="GitHub — 7 followers, 33 repositories, 2 stars, 0 contributions"></picture></a>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/header-problem-solving-dark.svg"><img src="assets/header-problem-solving-light.svg" width="100%" alt="07 · Problem solving"></picture>
 
-<a href="https://leetcode.com/u/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-leetcode-dark.svg"><img src="assets/live-leetcode-light.svg" width="100%" alt="LeetCode — 184 problems solved, rank 969574, 0-day streak"></picture></a>
+<a href="https://leetcode.com/u/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-leetcode-dark.svg"><img src="assets/live-leetcode-light.svg" width="100%" alt="LeetCode — 184 problems solved, rank 969968, 0-day streak"></picture></a>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/header-activity-dark.svg"><img src="assets/header-activity-light.svg" width="100%" alt="08 · Recent activity"></picture>
 
