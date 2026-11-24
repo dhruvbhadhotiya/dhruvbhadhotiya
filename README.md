@@ -65,7 +65,7 @@
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/header-problem-solving-dark.svg"><img src="assets/header-problem-solving-light.svg" width="100%" alt="07 · Problem solving"></picture>
 
-<a href="https://leetcode.com/u/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-leetcode-dark.svg"><img src="assets/live-leetcode-light.svg" width="100%" alt="LeetCode — 184 problems solved, rank 969968, 0-day streak"></picture></a>
+<a href="https://leetcode.com/u/dhruvbhadhotiya"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/live-leetcode-dark.svg"><img src="assets/live-leetcode-light.svg" width="100%" alt="LeetCode — 184 problems solved, rank 970379, 0-day streak"></picture></a>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dhruvbhadhotiya/dhruvbhadhotiya/main/assets/header-activity-dark.svg"><img src="assets/header-activity-light.svg" width="100%" alt="08 · Recent activity"></picture>
 
